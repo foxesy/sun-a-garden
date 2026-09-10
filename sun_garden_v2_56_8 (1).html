@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sun Garden v2 — Prototype</title>
+<style>
+  :root{
+    --bg:#0e1712; --panel:#14231b; --panel2:#192b21; --line:#24392c;
+    --text:#eae6d9; --dim:#8fa596;
+    --sun:#eab64a; --sund:#7a6531;
+    --leaf:#6bc06a; --leafd:#355c37;
+    --nut:#c98a4b; --nutd:#6b4a2c;
+    --rune:#a68cf0; --runed:#4d3f7a;
+    --root:#d0846b; --rootd:#6e4437;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:radial-gradient(ellipse at 50% -10%,#182b1f 0%,var(--bg) 55%);color:var(--text);
+    font-family:system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh;}
+  .wrap{max-width:980px;margin:0 auto;padding:16px 12px 70px;}
+  h1{font-size:22px;margin:0 0 2px;}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:12px;}
+  .statbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-bottom:10px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;}
+  .stat .label{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);}
+  .stat .val{font-family:ui-monospace,monospace;font-size:15px;font-weight:700;}
+  .c-sun{color:var(--sun);} .c-leaf{color:var(--leaf);} .c-nut{color:var(--nut);} .c-rune{color:var(--rune);} .c-root{color:var(--root);}
+
+  .cheat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;}
+  .cheat .cap{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;}
+  .chip{background:var(--panel2);border:1px solid var(--line);color:var(--dim);padding:6px 9px;border-radius:6px;
+    font-family:ui-monospace,monospace;font-size:11px;cursor:pointer;user-select:none;}
+  .chip:active{filter:brightness(1.5);}
+  .chip.active{color:var(--sun);border-color:var(--sund);}
+
+  .tabs{display:flex;gap:2px;margin-bottom:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .tab{background:none;border:none;color:var(--dim);font-weight:600;font-size:12px;padding:8px 10px;cursor:pointer;
+    border-bottom:2px solid transparent;}
+  .tab.active{color:var(--text);border-bottom-color:var(--sun);}
+  .tab.locked{opacity:.35;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .panel h2{font-size:15px;margin:0 0 4px;}
+  .desc{font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.5;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+  .hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .hscroll .upg{flex:0 0 200px;}
+  .hscroll::-webkit-scrollbar{height:6px;}
+  .hscroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+
+  /* ===== GEMAS: popup + colmeia ===== */
+  #gems-overlay{position:fixed;inset:0;background:#000a;z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+  #gems-overlay.open{display:flex;}
+  #gems-popup{background:var(--panel);border:2px solid #22d3ee;border-radius:16px;
+    max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:18px;
+    box-shadow:0 10px 40px #000c;position:relative;}
+  #gems-popup h2{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px;}
+  #gems-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--dim);
+    font-size:20px;cursor:pointer;line-height:1;}
+  #hive-wrap{position:relative;min-height:340px;margin-top:16px;overflow:hidden;border-radius:10px;
+    cursor:grab;touch-action:none;background:#00000022;}
+  #hive-wrap:active{cursor:grabbing;}
+  #hive-canvas{position:relative;width:100%;height:340px;}
+  .hex{
+    position:absolute;width:88px;height:100px;margin-left:-44px;margin-top:-50px;
+    cursor:pointer;
+  }
+  .hex-shape{
+    width:100%;height:100%;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;font-size:10px;font-weight:700;color:#0a0a0a;
+    border:2px solid #0006;padding:6px;line-height:1.25;transition:filter .15s,transform .15s;
+  }
+  .hex:hover .hex-shape{filter:brightness(1.2);transform:scale(1.04);}
+  .hex.maxed .hex-shape{filter:grayscale(.4) brightness(.8);}
+  .hex.maxed{cursor:default;}
+  .hex.disabled .hex-shape{filter:grayscale(.5) brightness(.65);}
+  .hex .hexlvl{font-family:ui-monospace,monospace;font-size:9px;margin-top:2px;opacity:.85;}
+  .hex-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    background:#000d;color:#fff;font-size:11px;padding:6px 9px;border-radius:6px;
+    white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:10;}
+  .hex:hover .hex-tooltip{opacity:1;}
+  .upg{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;}
+  .upg .name{font-weight:700;font-size:12.5px;}
+  .upg .meta{font-size:10.5px;color:var(--dim);line-height:1.4;}
+  .upg .lvl{font-family:ui-monospace,monospace;font-size:10.5px;color:var(--dim);}
+  .buybtn{border:none;border-radius:6px;padding:9px 8px;font-weight:700;font-size:12px;cursor:pointer;
+    font-family:ui-monospace,monospace;background:var(--sund);color:#1a1408;user-select:none;touch-action:manipulation;}
+  .buybtn:disabled{opacity:.35;cursor:not-allowed;}
+  .buybtn.leaf{background:var(--leafd);color:#0c1a0d;}
+  .buybtn.nut{background:var(--nutd);color:#170f08;}
+  .buybtn.root{background:var(--rootd);color:#1a0e09;}
+  .buybtn:not(:disabled):active{filter:brightness(1.4);}
+  .maxtag{color:var(--leaf);font-weight:700;font-size:12px;text-align:center;padding:8px 0;}
+
+  .bigbtn{border:none;border-radius:8px;padding:12px 16px;font-weight:700;font-size:14px;cursor:pointer;
+    background:var(--leaf);color:#0c1a0d;user-select:none;touch-action:manipulation;}
+  .bigbtn:disabled{opacity:.3;}
+  .bigbtn:active{filter:brightness(1.3);}
+
+  .tier{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
+  .tier.done{border-color:var(--leaf);}
+  .tier .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .tier .t{font-weight:700;font-size:12.5px;}
+  .tier .r{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5;}
+  .donetag{color:var(--leaf);font-weight:700;font-size:11.5px;}
+
+  /* Nutrient field */
+  #nu-field{position:relative;height:230px;background:#0c1410;border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;margin-bottom:12px;touch-action:none;}
+  .nucircle{position:absolute;width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#e8b078,#8a5a2e);
+    border:2px solid #c98a4b;cursor:pointer;user-select:none;
+    box-shadow:0 0 10px #c98a4b55;}
+  #nu-count-tag{position:absolute;top:8px;right:10px;font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);}
+
+  /* Runes */
+  #rune-hold{width:100%;padding:18px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;
+    background:linear-gradient(135deg,#4d3f7a,#6c56b8);color:#efe9ff;user-select:none;touch-action:none;margin-bottom:12px;}
+  #rune-hold.holding{filter:brightness(1.35);box-shadow:0 0 18px #a68cf077;}
+  #rune-hold-le{width:100%;padding:18px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;
+    background:linear-gradient(135deg,var(--leafd),var(--leaf));color:#0c1a0d;user-select:none;touch-action:none;margin-bottom:12px;}
+  #rune-hold-le.holding{filter:brightness(1.35);box-shadow:0 0 18px #6bc06a77;}
+  #rune-hold-nu{width:100%;padding:18px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;
+    background:linear-gradient(135deg,var(--nutd),var(--nut));color:#170f08;user-select:none;touch-action:none;margin-bottom:12px;}
+  #rune-hold-nu.holding{filter:brightness(1.35);box-shadow:0 0 18px #c98a4b77;}
+  .runecard{background:var(--panel2);border:1px solid var(--runed);border-radius:8px;padding:9px 11px;}
+  .runecard .rn{font-weight:700;font-size:12.5px;color:var(--rune);}
+  .runecard .re{font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:3px;}
+  .runecard .rc{font-family:ui-monospace,monospace;font-size:13px;margin-top:4px;}
+  #rune-log,#rune-log-le,#rune-log-nu{font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);margin-top:10px;max-height:80px;overflow-y:auto;line-height:1.6;}
+
+  /* Balance */
+  .cfgrow{display:grid;grid-template-columns:1.5fr .9fr .9fr;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:11.5px;}
+  .cfgrow.hd{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.04em;}
+  .cfgrow input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--text);
+    padding:6px 7px;font-family:ui-monospace,monospace;font-size:12px;}
+  .cfgsec{font-size:12px;font-weight:700;margin:12px 0 2px;}
+
+  .footer{position:fixed;left:0;right:0;bottom:0;background:#0c1410ee;border-top:1px solid var(--line);
+    padding:8px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;backdrop-filter:blur(4px);}
+  .footer .sp{flex:1;}
+  .fbtn{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;}
+  .fbtn:active{color:var(--text);}
+  #save-msg{font-size:10px;color:var(--dim);}
+  .notes{font-size:12px;color:var(--dim);line-height:1.65;}
+  .notes b{color:var(--text);}
+  .hidden{display:none !important;}
+  #sl-click:active{filter:brightness(1.3);transform:translateY(-50%) scale(0.94);}
+  .shop-boost-btn{
+    border-radius:12px; width:66px; height:58px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-size:17px; cursor:pointer; font-weight:700; line-height:1;
+    user-select:none; touch-action:manipulation; box-shadow:0 4px 14px #0007;
+  }
+  .shop-boost-btn .sb-label{font-size:8px;letter-spacing:.02em;margin-top:2px;}
+  .shop-boost-btn .sb-cur{font-family:ui-monospace,monospace;font-size:9px;opacity:.85;}
+  .shop-boost-btn:active{filter:brightness(1.3);transform:scale(0.94);}
+  @media (max-width:640px){
+    #gems-toggle{width:52px;height:64px;font-size:16px;left:6px;top:calc(50% - 128px);}
+    #sl-click{width:52px;height:72px;font-size:20px;left:6px;top:calc(50% - 44px);}
+    #autobuy-toggle{width:52px;height:52px;font-size:16px;left:6px;top:calc(50% + 44px);}
+    #buymax-toggle{width:52px;height:52px;font-size:16px;left:6px;top:calc(50% + 104px);}
+    #shop-test-panel{right:6px;}
+    .shop-boost-btn{width:52px;height:48px;font-size:14px;}
+  }
+</style>
+</head>
+<body>
+<button id="gems-toggle" title="Abrir/fechar o menu de Gemas" style="
+  position:fixed; left:10px; top:calc(50% - 156px); transform:translateY(-50%); z-index:50;
+  background:linear-gradient(160deg,#22d3ee,#0e7490); border:2px solid #22d3ee;
+  color:#04262c; border-radius:14px; width:64px; height:76px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  font-size:20px; cursor:pointer; font-weight:700; line-height:1.15;
+  user-select:none; touch-action:manipulation; box-shadow:0 4px 16px #0008;">
+  💎<span style="font-size:9px;letter-spacing:.02em;" id="gems-count">0</span><span style="font-size:8px;opacity:.85;" id="gems-rate">+0/0s</span>
+</button>
+<button id="sl-click" title="Clique para coletar o SL que você ganharia" style="
+  position:fixed; left:10px; top:calc(50% - 52px); transform:translateY(-50%); z-index:50;
+  background:linear-gradient(160deg,var(--sun),var(--sund)); border:2px solid var(--sun);
+  color:#1a1408; border-radius:14px; width:64px; height:88px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  font-size:26px; cursor:pointer; font-weight:700; line-height:1;
+  user-select:none; touch-action:manipulation; box-shadow:0 4px 16px #0008;">
+  ☀️<span style="font-size:10px;letter-spacing:.03em;">COLETAR</span>
+</button>
+<button id="autobuy-toggle" class="hidden" title="Liga/desliga todos os auto-buy" style="
+  position:fixed; left:10px; top:calc(50% + 52px); transform:translateY(-50%); z-index:50;
+  background:var(--panel2); border:2px solid var(--rune);
+  color:var(--rune); border-radius:14px; width:64px; height:64px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  font-size:20px; cursor:pointer; font-weight:700; line-height:1;
+  user-select:none; touch-action:manipulation; box-shadow:0 4px 16px #0008;">
+  <span id="autobuy-icon">🤖</span><span id="autobuy-label" style="font-size:9px;letter-spacing:.02em;">AUTO-BUY</span>
+</button>
+<button id="buymax-toggle" class="hidden" title="Liga/desliga o Buy Max (compra o máximo possível em 1 clique)" style="
+  position:fixed; left:10px; top:calc(50% + 124px); transform:translateY(-50%); z-index:50;
+  background:var(--panel2); border:2px solid var(--sun);
+  color:var(--sun); border-radius:14px; width:64px; height:64px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  font-size:20px; cursor:pointer; font-weight:700; line-height:1;
+  user-select:none; touch-action:manipulation; box-shadow:0 4px 16px #0008;">
+  <span id="buymax-icon">📦</span><span id="buymax-label" style="font-size:9px;letter-spacing:.02em;">BUY MAX</span>
+</button>
+
+<div id="shop-test-panel" style="
+  position:fixed; right:10px; top:50%; transform:translateY(-50%); z-index:50;
+  display:flex; flex-direction:column; gap:8px; align-items:center;">
+  <div style="font-size:9px;color:var(--dim);text-align:center;max-width:70px;letter-spacing:.02em;">TESTE DE VENDA DE BOOSTS</div>
+  <button class="shop-boost-btn" data-testboost="luck" style="background:var(--panel2);border:2px solid var(--rune);color:var(--rune);">
+    🍀<span class="sb-label">2x LUCK</span><span class="sb-cur" data-testcur="luck"></span>
+  </button>
+  <button class="shop-boost-btn" data-testboost="bulk" style="background:var(--panel2);border:2px solid var(--rune);color:var(--rune);">
+    📦<span class="sb-label">2x BULK</span><span class="sb-cur" data-testcur="bulk"></span>
+  </button>
+  <button class="shop-boost-btn" data-testboost="clone" style="background:var(--panel2);border:2px solid var(--rune);color:var(--rune);">
+    👥<span class="sb-label">2x CLONE</span><span class="sb-cur" data-testcur="clone"></span>
+  </button>
+  <button class="shop-boost-btn" data-testboost="all" style="background:linear-gradient(160deg,var(--sun),var(--sund));border:2px solid var(--sun);color:#1a1408;">
+    ✨<span class="sb-label">2x TUDO</span><span class="sb-cur" data-testcur="all"></span>
+  </button>
+  <button id="autobuy-boost-toggle" class="shop-boost-btn" style="background:var(--panel2);border:2px solid var(--dim);color:var(--dim);" title="Quando ligado, o auto-buy volta a comprar instantâneo (sem o ritmo de 1 a cada 0,5s)">
+    <span id="autobuy-boost-icon">⚡</span><span class="sb-label" id="autobuy-boost-label">AUTO-BUY BOOST</span>
+  </button>
+</div>
+
+<div id="gems-overlay">
+  <div id="gems-popup">
+    <button id="gems-close" title="Fechar">✕</button>
+    <h2>💎 Gemas — <span id="gems-popup-count">0</span> <span style="font-size:11px;color:var(--dim);font-weight:400;" id="gems-popup-rate"></span></h2>
+    <div class="desc">Árvore de upgrades em colmeia. Clique num hexágono desbloqueado pra comprar; passe o mouse pra ver a descrição; clique e arraste pra ver o restante da árvore.</div>
+    <div id="hive-wrap"><div id="hive-canvas"></div></div>
+  </div>
+</div>
+<div class="wrap">
+  <h1>🌱 Sun Garden <span style="color:var(--dim);font-size:13px;font-weight:400;">v2 — protótipo de balanceamento</span></h1>
+  <div class="sub">Ordem da fórmula: SL → Leaves → Grow → Nutrient → Roots → Runes. Ganhos sempre arredondados pra cima.</div>
+
+  <div class="statbar">
+    <div class="stat"><div class="label">Sun Light</div><div class="val c-sun" id="v-sl">0</div></div>
+    <div class="stat"><div class="label">Leaves</div><div class="val c-leaf" id="v-le">0</div></div>
+    <div class="stat"><div class="label">Nutrients</div><div class="val c-nut" id="v-nu">0</div></div>
+    <div class="stat"><div class="label">Grow</div><div class="val" id="v-grow">0/8</div></div>
+    <div class="stat"><div class="label">Roots</div><div class="val c-root" id="v-roots">0</div></div>
+    <div class="stat"><div class="label">Rune Luck</div><div class="val c-rune" id="v-rl">x1</div></div>
+    <div class="stat"><div class="label">Rune Bulk</div><div class="val c-rune" id="v-rb">x1</div></div>
+    <div class="stat"><div class="label">Rune Clone</div><div class="val c-rune" id="v-rc">x1</div></div>
+  </div>
+
+  <div class="cheat">
+    <div class="cap">Adicionar moeda (teste rápido)</div>
+    <div class="chips">
+      <button class="chip" data-add="sl" data-amt="1000">+1K SL</button>
+      <button class="chip" data-add="sl" data-amt="100000">+100K SL</button>
+      <button class="chip" data-add="sl" data-amt="10000000">+10M SL</button>
+      <button class="chip" data-add="le" data-amt="1000">+1K LE</button>
+      <button class="chip" data-add="le" data-amt="100000">+100K LE</button>
+      <button class="chip" data-add="le" data-amt="10000000">+10M LE</button>
+      <button class="chip" data-add="nu" data-amt="100">+100 NU</button>
+      <button class="chip" data-add="nu" data-amt="10000">+10K NU</button>
+      <button class="chip" data-add="nu" data-amt="1000000">+1M NU</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="content"></div>
+</div>
+
+<div class="footer">
+  <span style="font-size:10px;color:var(--dim);">Vel.</span>
+  <button class="chip spd active" data-speed="1">1x</button>
+  <button class="chip spd" data-speed="10">10x</button>
+  <button class="chip spd" data-speed="50">50x</button>
+  <button class="chip spd" data-speed="200">200x</button>
+  <span style="width:1px;height:20px;background:var(--line);margin:0 4px;"></span>
+  <span style="font-size:10px;color:var(--dim);" title="Tempo total de jogo (em tempo de jogo, considerando a velocidade)">⏱ Total: <b id="t-total" style="color:var(--text);font-family:ui-monospace,monospace;">0s</b></span>
+  <span style="font-size:10px;color:var(--dim);" title="Reseta a cada compra (upgrade, Grow, Roots) e a cada runa coletada">⏳ Desde a última compra: <b id="t-purchase" style="color:var(--text);font-family:ui-monospace,monospace;">0s</b></span>
+  <span id="t-alert" class="hidden" style="font-size:10px;color:var(--danger);font-weight:700;" title="Quantas vezes o intervalo entre compras passou de 30 segundos">⚠ 30s+: <b id="t-alert-count" style="font-family:ui-monospace,monospace;">0</b></span>
+  <button id="b-pause" class="fbtn" style="padding:4px 8px;" title="Pausa o auto-buy, toda produção passiva de moedas e o cronômetro (clique de novo pra continuar)"><span id="b-pause-icon">⏸</span> <span id="b-pause-label">Pausar</span></button>
+  <span class="sp"></span>
+  <button class="fbtn" id="b-save">Salvar</button>
+  <button class="fbtn" id="b-load">Carregar</button>
+  <button class="fbtn" id="b-reset">Reiniciar</button>
+  <span id="save-msg"></span>
+</div>
+
+<script>
+'use strict';
+/* =================== CONFIG (editável em Balance) =================== */
+const C = {
+  slBaseInterval: 1,
+  slBaseAmount: 1,
+  slUpg: {
+    add1:  {name:'+1 Sun Light',                 max:20, cost:10,     growth:1.5, doubleEvery:10},
+    cd:    {name:'-0,04s Sun Light Cooldown',    max:10, cost:100,    growth:2.0},
+    mult:  {name:'+1x Multiplicador de SL',      max:10, cost:1000,   growth:5.0},
+    x2:    {name:'x2 Sun Light (compra única)',  max:1,  cost:400,    growth:1},
+    cd2:   {name:'-0,5s Sun Light Cooldown (compra única)', max:1, cost:5000000, growth:1},
+    nuboost1: {name:'x2 Nutrient (compra única)', max:1, cost:300000000000, growth:1, alwaysPaid:true},
+    slboost2: {name:'x2 Sun Light (compra única, 1T)', max:1, cost:1000000000000, growth:1, alwaysPaid:true},
+    rbboost1: {name:'x2 Rune Bulk (compra única, SL)', max:1, cost:50000000000000, growth:1, alwaysPaid:true},
+    slboost3: {name:'x2 Sun Light (compra única, 50T)', max:1, cost:50000000000000, growth:1, alwaysPaid:true},
+    slboost4: {name:'x2 Sun Light (compra única, 150T)', max:1, cost:150000000000000, growth:1, alwaysPaid:true},
+    luckboost1: {name:'x2 Rune Luck (compra única)', max:1, cost:100000000, growth:1, alwaysPaid:true},
+    runebase1:  {name:'+2 Runas base por rolagem (compra única)', max:1, cost:20000000, growth:1, alwaysPaid:true},
+    rbboost0:   {name:'x2 Rune Bulk (compra única, 100M)', max:1, cost:100000000, growth:1, alwaysPaid:true},
+    nuboostB:   {name:'x2 Nutrient (compra única, 10T)', max:1, cost:10000000000000, growth:1, alwaysPaid:true},
+    slboost5:   {name:'x2 Sun Light (compra única, 10Qa)', max:1, cost:10000000000000000, growth:1, alwaysPaid:true},
+    slboost6:   {name:'x2 Sun Light (compra única, 50Qa)', max:1, cost:50000000000000000, growth:1, alwaysPaid:true},
+    nuboostC:   {name:'x2 Nutrient (compra única, 150Qa)', max:1, cost:150000000000000000, growth:1, alwaysPaid:true},
+    nuboostD:   {name:'x2 Nutrient (compra única, 1Qi)', max:1, cost:1000000000000000000, growth:1, alwaysPaid:true},
+    nuboostE:   {name:'x2 Nutrient (compra única, 10Sx)', max:1, cost:10000000000000000000000, growth:1, alwaysPaid:true},
+  },
+  leRatio: 50000,
+  leUpg: {
+    mult:   {name:'+1x Multiplicador de Leaves', max:30, cost:1, growth:2.0},
+    slmult: {name:'+1x Multiplicador de SL',     max:30, cost:2, growth:2.0},
+  },
+  // Boosts únicos pagos com LE — ficam FORA de leUpg de propósito, pra nunca serem
+  // pegos pelo perk "upgrades de LE grátis" (Grow 8) nem pelo auto-buy de LE (Grow 7).
+  leOneTime: {
+    slBoost1: {name:'x2 Sun Light (compra com LE)',        cost:20000000000000},
+    slBoost2: {name:'x2 Sun Light de novo (compra com LE, 1Qi)', cost:250000000000000000},
+    slBoost3: {name:'x2 Sun Light mais uma vez (compra com LE)', cost:100000000000000000},
+    bulkBoost:{name:'x2 Rune Bulk (compra com LE, 300Qi)', cost:75000000000000000000},
+    luckBoost:{name:'x2 Rune Luck (compra com LE, 100Qi)', cost:25000000000000000000},
+    runeBaseLE1: {name:'+2 Runas base por rolagem (compra com LE)', cost:100000},
+    bulkBoostCheap: {name:'x2 Rune Bulk (compra com LE, 2M)', cost:2000000},
+    bulkBoostMid: {name:'x2 Rune Bulk (compra com LE, 2B)', cost:2000000000},
+    nuBoostLE1: {name:'x2 Nutrient (compra com LE, 100Sx)', cost:100000000000000000000000},
+    nuBoostLE2: {name:'x2 Nutrient (compra com LE, 2Sp)', cost:2000000000000000000000000},
+    slBoost4: {name:'x2 Sun Light (compra com LE, 10Sp)', cost:10000000000000000000000000},
+    slBoost5: {name:'x2 Sun Light (compra com LE, 1No)', cost:1000000000000000000000000000000},
+    luckBoost2: {name:'x2 Rune Luck (compra com LE, 10No)', cost:10000000000000000000000000000000},
+    nuBoostLE3: {name:'x2 Nutrient (compra com LE, 5No)', cost:5000000000000000000000000000000},
+    slBoost6: {name:'x100 Sun Light (compra com LE, 100No)', cost:100000000000000000000000000000000},
+  },
+  nuBaseInterval: 2,
+  nuBaseCapacity: 10,
+  nuMinCooldown: 0.05,
+  nuUpg: {
+    add1: {name:'+1 Nutrient',              max:30, cost:5,  growth:1.2},
+    add10: {name:'+10 Nutrient',            max:20, cost:100000, growth:2.0},
+    add100: {name:'+100 Nutrient',          max:10, cost:200000000000, growth:1.5},
+    cd:   {name:'-Nutrient Spawn Cooldown', max:30, cost:20, growth:1.5},
+    cap:  {name:'+3 Capacidade de Nutrient',max:30, cost:5,  growth:2.0},
+    nuboost2: {name:'x2 Nutrient (compra única)', max:1, cost:500000000, growth:1, alwaysPaid:true},
+    unlockCompost: {name:'Unlock Compost', max:1, cost:100000000000000, growth:1, alwaysPaid:true},
+    luckboostNU1: {name:'x2 Rune Luck (compra única)', max:1, cost:200000000000, growth:1, alwaysPaid:true},
+    nuboost3: {name:'x2 Nutrient (compra única, 3,5T)', max:1, cost:3500000000000, growth:1, alwaysPaid:true},
+  },
+  compost: {
+    baseInterval: 2.5,
+    minInterval: 2.0,
+    gen1: {base:1},
+    gen1Upg: {name:'2x CO (Gerador 1)', cost:5, growth:1.75, max:10},
+    gen2: {base:10, unlockCost:50000},
+    gen2Upg: {name:'2x CO (Gerador 2)', cost:50000, growth:1.75, max:10},
+    coUpg: {
+      cd:   {name:'-0,1s cooldown dos geradores', cost:1000, growth:1.5, max:5},
+      mult: {name:'2x CO (todos os geradores)',   cost:5000, growth:3.0, max:5},
+      luckBoost: {name:'x2 Rune Luck (compra única)', cost:5000, max:1},
+      runeBaseBoost: {name:'+2 Runa Base (compra única)', cost:10000, max:1},
+      nuBoost: {name:'x2 Nutrient (compra única)', cost:350000, max:1},
+    },
+    // Power 1..5: cada unidade é comprada com a moeda anterior (Power 1 com CO, os demais
+    // com 5 unidades do Power anterior) e dá bônus permanentes que escalam linearmente até
+    // um teto (mesmo padrão de "maximiza em X" usado nas runas: mult = min(1+pct*qtd, cap)).
+    power: {
+      p1: {name:'Power 1', costCur:'co', unitCost:1000,
+        boosts:[ {res:'sl', cap:150, capAt:50000}, {res:'co', cap:2, capAt:25000} ]},
+      p2: {name:'Power 2', costCur:'p1', unitCost:5,
+        boosts:[ {res:'le', cap:50, capAt:20000}, {res:'nu', cap:5, capAt:10000} ]},
+      p3: {name:'Power 3', costCur:'p2', unitCost:5,
+        boosts:[ {res:'nu', cap:15, capAt:5000}, {res:'rl', cap:2, capAt:2000}, {res:'co', cap:2, capAt:1000} ]},
+      p4: {name:'Power 4', costCur:'p3', unitCost:5,
+        boosts:[ {res:'gems', cap:2, capAt:1000}, {res:'rb', cap:2, capAt:500} ]},
+      p5: {name:'Power 5', costCur:'p4', unitCost:5,
+        boosts:[ {res:'runeClone', additive:true, rate:1, per:100, cap:5}, {res:'co', cap:5, capAt:50} ]},
+    },
+  },
+  grow: [
+    {id:1, cur:'sl', cost:5000,     sl:2,   le:1,   rl:1,  rb:1,  lePct:0},
+    {id:2, cur:'sl', cost:50000,     sl:5,   le:1,   rl:1,  rb:1,  lePct:0,   unlockLe:true},
+    {id:3, cur:'sl', cost:5000000,    sl:10,  le:2,   rl:2,  rb:1,  lePct:0},
+    {id:4, cur:'sl', cost:1000000000,  sl:20,  le:5,   rl:4,  rb:2,  lePct:0},
+    {id:5, cur:'le', cost:500000000,  sl:50,  le:10,  rl:8,  rb:4,  autoSl:true},
+    {id:6, cur:'le', cost:50000000000, sl:100, le:20,  rl:16, rb:8,  lePct:10,  slFree:true, unlockNu:true},
+    {id:7, cur:'nu', cost:50000,    sl:200, le:50,  rl:32, rb:16, lePct:100, autoLe:true, nu:2},
+    {id:8, cur:'nu', cost:1500000,  sl:500, le:100, rl:64, rb:32, lePct:100, leFree:true, nu:4, buyMax:true},
+    {id:9, cur:'co', cost:50000, sl:1000, le:200, nu:10, co:2, onlyResetCO:true},
+    {id:10, cur:'co', cost:50000000, sl:5000, le:500, nu:25, co:4, rb:64, onlyResetCO:true},
+  ],
+  roots: [
+    {id:1, cost:25000000,    sl:5,  le:5,  nu:5,  rl:5,  rb:5,  rc:2, resetAutoBuy:true},
+    {id:2, cost:5000000000, sl:10, le:10, nu:10},
+    {id:3, cost:500000000000, sl:100, le:50, nu:20, keepRebirthGen:true, keepGrow:true, autoNu:true},
+    {id:4, cost:1000000, cur:'co', sl:200, le:100, nu:50, co:2, onlyResetCO:true},
+  ],
+  rootsCurrency: 'nu', // NÃO ESPECIFICADO no doc — assumido NU, editável (custo do nível 3 também assumido)
+  runeCost: 100000,      // SL por rolagem
+  runeRollInterval: 0.5, // segundos por rolagem enquanto segura — NÃO ESPECIFICADO, editável
+  runes: {
+    A: {chance:1,     sl:0.001,  slCap:2,  le:0,     leCap:1, nu:0, nuCap:1},
+    B: {chance:500,   sl:0.000667,  slCap:5,  le:0.000167,leCap:2, nu:0, nuCap:1},
+    // C: SL e LE maximizam em 1000 runas; Rune Luck maximiza em 20 runas (caps diferentes)
+    C: {chance:50000,  sl:0.001333,  slCap:5,  le:0.001333,  leCap:5,  rl:0.016667,   rlCap:2},
+    // D: SL e LE maximizam em 500 runas; Rune Bulk maximiza em 10 runas (caps diferentes)
+    D: {chance:1000000, sl:0.006,  slCap:10, le:0.006,  leCap:10, rb:0.033333,    rbCap:2},
+    K: {chance:120000000000, rb:0.333333, rbCap:2, rl:0.166667, rlCap:2, baseBonusRate:0.666667, baseBonusCap:2, sl:0.266667, slCap:5, le:0.266667, leCap:5},
+    N: {chance:30000000000000, sl:4, slCap:5, nu:1, nuCap:2},
+  },
+  runeLECost: 1000000,   // LE por rolagem (pool separado das runas de SL)
+  runesLE: {
+    E: {chance:1,     le:0.0000333, leCap:2},
+    F: {chance:2000,  le:0.000167, leCap:2, rl:0.000167, rlCap:2},
+    G: {chance:40000, le:0.000167, leCap:2, nu:0.000167, nuCap:2, rl:0.000167, rlCap:2, baseBonus:1},
+    H: {chance:2000000, le:0.00001333, leCap:2, rl:0.00001333,  rlCap:2, nu:0.00002667,  nuCap:3, baseBonus:1},
+    L: {chance:400000000000, nu:0.133333, nuCap:5, sl:0.2, slCap:5, rb:0.125, rbCap:2},
+  },
+  runeNUCost: 10000000,  // NU por rolagem (terceiro pool de runas, separado dos de SL e LE)
+  runesNU: {
+    I: {chance:1,       nu:0.000667, nuCap:2, sl:0.000667, slCap:2, rl:0.000667, rlCap:2},
+    J: {chance:6000000, nu:0.003, nuCap:4, rl:0.005, rlCap:2, sl:0.003, slCap:4},
+    M: {chance:10000000000000, nu:0.02, nuCap:4, co:0.05, coCap:2},
+  },
+  gems: {
+    baseInterval: 30, minInterval: 5, // cooldown REAL de 30s, dando 40 gemas por tick na base
+    baseAmount: 40,
+    // pos em "unidades de hexágono" (não pixels) — convertido pra pixel na hora de desenhar
+    tree: {
+      hive: {name:'Colmeia', info:'HERE THE INFO WILL BE SHOWN', free:true, pos:{x:0,y:0}, color:'#8a8a8a'},
+      gem1: {name:'Upgrade 1: +35% de Gemas', info:'+35% de gemas por nível', costs:[50,80,150,250,400], effectPct:0.35, pos:{x:-1,y:-1}, parent:'hive', color:'#22d3ee'},
+      cd1:  {name:'Upgrade 2: -1s Cooldown', info:'-1 segundo no cooldown de gemas por nível', costs:[200,300,400,500,600], effectSec:1, pos:{x:-2,y:-2}, parent:'gem1', color:'#a78bfa'},
+      gem2: {name:'Upgrade 3: +50% de Gemas', info:'+50% de gemas por nível', costs:[500,1000,1500], effectPct:0.50, pos:{x:0,y:-2}, parent:'gem1', color:'#22d3ee'},
+      cd2:  {name:'Upgrade 5: -1s Cooldown', info:'-1 segundo no cooldown de gemas por nível', costs:[2500,5000,7500,10000,12500], effectSec:1, pos:{x:-3,y:-3}, parent:'cd1', color:'#a78bfa'},
+      gem4: {name:'Upgrade 4: +15% de Gemas', info:'+15% de gemas por nível', costs:[600,800,1000,1200,1400,1600,1800,2000,2200,2400], effectPct:0.15, pos:{x:1,y:-3}, parent:'gem2', color:'#22d3ee'},
+      gem6: {name:'Upgrade 6: x2 Gemas', info:'dobra a produção de gemas (compra única)', costs:[10000], effectMult:2, pos:{x:0,y:-4}, parent:'gem4', color:'#facc15'},
+      abSpeed: {name:'Upgrade 7: Auto-Buy Instantâneo', info:'deixa o auto-buy tão rápido quanto o modo BOOST, o tempo todo (compra única)', costs:[20000], effectMult:1, pos:{x:-4,y:-4}, parent:'cd2', color:'#facc15'},
+      gem12: {name:'Upgrade 12: x2 Gemas', info:'dobra a produção de gemas de novo (compra única)', costs:[100000], effectMult:2, pos:{x:-5,y:-5}, parent:'abSpeed', color:'#facc15'},
+      speed: {name:'Upgrade 8: Velocidade do Jogador', info:'aumenta a velocidade de movimento do jogador (sem efeito aqui no navegador — é só pra simular a versão Roblox)', costs:[10,100,1000,10000,100000], pos:{x:0,y:2}, parent:'hive', color:'#94a3b8'},
+      gemSl: {name:'Upgrade 9: +50% de SL', info:'+50% de Sun Light por nível', costs:[200,350,613], effectPct:0.50, pos:{x:0,y:4}, parent:'speed', color:'#fbbf24'},
+      gemLe: {name:'Upgrade 10: +50% de LE', info:'+50% de Leaves por nível', costs:[1000,1750,3063], effectPct:0.50, pos:{x:1,y:5}, parent:'gemSl', color:'#4ade80'},
+      gemNu: {name:'Upgrade 11: +50% de NU', info:'+50% de Nutrient por nível', costs:[5000,100000], effectPct:0.50, pos:{x:-1,y:5}, parent:'gemSl', color:'#f97316'},
+    },
+  },
+};
+
+/* =================== STATE =================== */
+function freshState(){
+  return {
+    sl:0, le:0, nu:0, peakSl:0,
+    slLvl:{add1:0, cd:0, mult:0, x2:0, cd2:0, leboost1:0, leboost2:0, leboost3:0, nuboost1:0, slboost2:0, rbboost1:0, slboost3:0, slboost4:0, luckboost1:0, runebase1:0, rbboost0:0, nuboostB:0, slboost5:0, slboost6:0, nuboostC:0, nuboostD:0, nuboostE:0},
+    leLvl:{mult:0, slmult:0, slBoost1:0, slBoost2:0, slBoost3:0, slBoost4:0, slBoost5:0, bulkBoost:0, luckBoost:0, luckBoost2:0, runeBaseLE1:0, bulkBoostCheap:0, bulkBoostMid:0, nuBoostLE1:0, nuBoostLE2:0, nuBoostLE3:0, slBoost6:0},
+    nuLvl:{add1:0, add10:0, add100:0, cd:0, cap:0, nuboost2:0, unlockCompost:0, luckboostNU1:0, nuboost3:0},
+    grow:0, roots:0,
+    runes:{A:0,B:0,C:0,D:0,K:0},
+    runesLE:{E:0,F:0,G:0,H:0,L:0},
+    runesNU:{I:0,J:0,M:0},
+    co:0, gen1UpgLvl:0, gen2Unlocked:false, gen2UpgLvl:0,
+    coUpg:{cd:0, mult:0, luckBoost:0, runeBaseBoost:0, nuBoost:0},
+    power:{p1:0, p2:0, p3:0, p4:0, p5:0},
+    accCo:0,
+    permAutoSl:false, permAutoLe:false, keptLePct:0, autoBuyDisabled:false,
+    permBuyMax:false, buyMaxDisabled:false,
+    autoBuyAccSl:0, autoBuyAccLe:0, autoBuyAccNu:0,
+    testBoost:{luck:0,bulk:0,clone:0,all:0}, // painel de teste de venda de boosts (dobra a cada clique)
+    autoBuyBoost:false, // liga/desliga o ritmo instantâneo do auto-buy (pra teste)
+    totalPlayTime:0, timeSincePurchase:0, slowPurchaseCount:0, purchaseAlertShown:false,
+    gems:0, accGems:0, gemsHiveStarted:false, gemTree:{gem1:0, gem2:0, cd1:0, gem4:0, cd2:0, gem6:0, abSpeed:0, gem12:0, speed:0, gemSl:0, gemLe:0, gemNu:0},
+    accSl:0, accNu:0,
+    circles:[],
+    speed:1,
+  };
+}
+let S = freshState();
+let activeTab = 'sl';
+let gemsPopupOpen = false;
+let hiveDirty = true;
+let hivePanX = 0, hivePanY = 0;
+let hiveDragging = false, hiveDragMoved = false;
+let hiveDragStartClientX = 0, hiveDragStartClientY = 0, hivePanStartX = 0, hivePanStartY = 0;
+let holdingRune = false;
+let runeAcc = 0;
+let holdingRuneLE = false;
+let runeAccLE = 0;
+let holdingRuneNU = false;
+let runeAccNU = 0;
+let resetArmed = false;
+
+/* =================== MATH / FORMULAS =================== */
+const ceil = Math.ceil;
+function fmt(n){
+  if(!isFinite(n)) return '∞';
+  n = Math.floor(n);
+  if(n < 1000) return String(n);
+  const u = ['K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','De','Ud','Dd','Td','Qd','Qid','Sxd','Spd','Ocd','Nod','Ded'];
+  let i=-1, v=n;
+  while(v>=1000 && i<u.length-1){ v/=1000; i++; }
+  return (Math.round(v*100)/100)+u[i];
+}
+function formatDuration(sec){
+  sec = Math.floor(sec);
+  if(sec<60) return sec+'s';
+  const d=Math.floor(sec/86400); sec%=86400;
+  const h=Math.floor(sec/3600); sec%=3600;
+  const m=Math.floor(sec/60); sec%=60;
+  let parts=[];
+  if(d>0) parts.push(d+'d');
+  if(h>0||d>0) parts.push(h+'h');
+  if(m>0||h>0||d>0) parts.push(m+'m');
+  parts.push(sec+'s');
+  return parts.join(' ');
+}
+function cost(cfg, lvl){
+  // lvl = nível já possuído; retorna o custo do PRÓXIMO nível (lvl+1)
+  if(cfg.doubleEvery){
+    let c=cfg.cost;
+    for(let n=2;n<=lvl+1;n++){
+      c *= (n % cfg.doubleEvery === 0) ? 2 : cfg.growth; // no nível 10, 20 etc: dobra em vez do crescimento normal
+    }
+    return ceil(c);
+  }
+  return ceil(cfg.cost * Math.pow(cfg.growth, lvl));
+}
+// Upgrades comprados com SUNLIGHT: qualquer custo acima de 50 milhões de SL leva +200% (fica 3x).
+function slCost(cfg, lvl){
+  const c = cost(cfg, lvl);
+  return c > 50000000 ? ceil(c*3) : c;
+}
+// Upgrades comprados com LEAVES: qualquer custo acima de 1 bilhão de LE leva +300% (fica 4x).
+// Além disso, dos que sobrarem acima de 1Sx (depois desse x4), mais +900% (fica 10x em cima do valor já ajustado).
+function leCost(cfg, lvl){
+  let c = cost(cfg, lvl);
+  if(c > 1000000000) c *= 4;
+  if(c > 1e21) c *= 10;
+  return ceil(c);
+}
+function leOneTimeCost(key){
+  let c = C.leOneTime[key].cost;
+  if(c > 1000000000) c *= 4;
+  if(c > 1e21) c *= 10;
+  return ceil(c);
+}
+// Upgrades comprados com NUTRIENT: qualquer custo acima de 100 mil NU leva +200% (fica 3x).
+function nuCost(cfg, lvl){
+  const c = cost(cfg, lvl);
+  return c > 100000 ? ceil(c*3) : c;
+}
+
+function growVal(key, dflt){
+  let v=dflt;
+  for(let i=0;i<S.grow;i++){ if(C.grow[i][key]!==undefined) v=C.grow[i][key]; }
+  return v;
+}
+function rootsVal(key, dflt){
+  let v=dflt;
+  for(let i=0;i<S.roots;i++){ if(C.roots[i][key]!==undefined) v=C.roots[i][key]; }
+  return v;
+}
+
+/* Rune multipliers (aplicados por último) */
+function runeMult(res){
+  let m=1;
+  for(const k of ['A','B','C','D','K','N']){
+    const r=C.runes[k], cnt=S.runes[k];
+    const pct = r[res], cap = r[res+'Cap'];
+    if(pct>0 && cnt>0) m *= Math.min(1 + pct*cnt, cap);
+  }
+  for(const k of ['E','F','G','H','L']){
+    const r=C.runesLE[k], cnt=S.runesLE[k];
+    const pct = r[res], cap = r[res+'Cap'];
+    if(pct>0 && cnt>0) m *= Math.min(1 + pct*cnt, cap);
+  }
+  for(const k of ['I','J','M']){
+    const r=C.runesNU[k], cnt=S.runesNU[k];
+    const pct = r[res], cap = r[res+'Cap'];
+    if(pct>0 && cnt>0) m *= Math.min(1 + pct*cnt, cap);
+  }
+  return m;
+}
+function runeBaseBonus(){
+  // Runas G e H dão +1 na quantidade base de runas por rolagem, já a partir da primeira runa (flat)
+  let b=0;
+  if(S.runesLE.G>0) b += C.runesLE.G.baseBonus;
+  if(S.runesLE.H>0) b += C.runesLE.H.baseBonus;
+  // Runas com baseBonusRate/baseBonusCap escalam com a quantidade até um teto (ex.: Runa K)
+  const pools = [[C.runes,S.runes],[C.runesLE,S.runesLE],[C.runesNU,S.runesNU]];
+  for(const [cfgPool, statePool] of pools){
+    for(const k in cfgPool){
+      const cfg = cfgPool[k];
+      if(cfg.baseBonusRate && cfg.baseBonusCap && statePool[k]>0){
+        b += Math.min(cfg.baseBonusRate*statePool[k], cfg.baseBonusCap);
+      }
+    }
+  }
+  return b;
+}
+function chanceNowText(chance){
+  const luck=runeLuck();
+  const effChance = chance/luck; // "1 em X" — quanto menor, mais fácil
+  if(effChance<=1) return '1/1 (garantido)';
+  return '1/'+fmt(effChance);
+}
+function maximizeRune(pool, key){
+  const cfg = pool==='le' ? C.runesLE[key] : pool==='nu' ? C.runesNU[key] : C.runes[key];
+  let needed = 1;
+  for(const res of ['sl','le','nu','rl','rb','co']){
+    const pct = cfg[res], cap = cfg[res+'Cap'];
+    if(pct>0 && cap!==undefined){
+      const countForCap = Math.ceil((cap-1)/pct);
+      if(countForCap>needed) needed=countForCap;
+    }
+  }
+  if(cfg.baseBonusRate && cfg.baseBonusCap){
+    const countForCap = Math.ceil(cfg.baseBonusCap/cfg.baseBonusRate);
+    if(countForCap>needed) needed=countForCap;
+  }
+  if(pool==='le') S.runesLE[key]=needed; else if(pool==='nu') S.runesNU[key]=needed; else S.runes[key]=needed;
+  markDirty();
+}
+function runeBoostText(k, pool){
+  const cfgPool = pool==='le' ? C.runesLE : pool==='nu' ? C.runesNU : C.runes;
+  const statePool = pool==='le' ? S.runesLE : pool==='nu' ? S.runesNU : S.runes;
+  const r=cfgPool[k], cnt=statePool[k];
+  if(cnt<=0) return 'boost atual: nenhuma runa ainda';
+  const parts=[];
+  for(const res of ['sl','le','nu','rl','rb','co']){
+    const pct=r[res], cap=r[res+'Cap'];
+    if(pct>0){
+      const mult=Math.min(1+pct*cnt, cap);
+      parts.push(`${res.toUpperCase()} atual: +${((mult-1)*100).toFixed(1)}% (x${mult.toFixed(2)})`);
+    }
+  }
+  if(r.baseBonus && cnt>0) parts.push(`Quantidade base: +${r.baseBonus}`);
+  if(r.baseBonusRate && r.baseBonusCap){
+    const cur = Math.min(r.baseBonusRate*cnt, r.baseBonusCap);
+    parts.push(`Quantidade base: +${cur.toFixed(2)} (máx +${r.baseBonusCap})`);
+  }
+  return 'com '+fmt(cnt)+' runas → '+(parts.length?parts.join(' · '):'sem efeito percentual');
+}
+function runeLuck(){ return growVal('rl',1) * rootsVal('rl',1) * testLuckMult() * testAllMult() * runeMult('rl') * powerMult('rl') * (S.leLvl.luckBoost?2:1) * (S.leLvl.luckBoost2?2:1) * (S.slLvl.luckboost1?2:1) * (S.coUpg.luckBoost?2:1) * (S.nuLvl.luckboostNU1?2:1); }
+function runeBulk(){ return growVal('rb',1) * rootsVal('rb',1) * testBulkMult() * testAllMult() * runeMult('rb') * powerMult('rb') * (S.slLvl.rbboost1?2:1) * (S.slLvl.rbboost0?2:1) * (S.leLvl.bulkBoost?2:1) * (S.leLvl.bulkBoostCheap?2:1) * (S.leLvl.bulkBoostMid?2:1); }
+function runeClone(){ return (rootsVal('rc',1) + powerCloneBonus()) * testCloneMult() * testAllMult(); }
+
+/* ===== POWER (Compost) — cada unidade custa a moeda anterior e dá bônus permanentes,
+   escalando linearmente até um teto ("maximiza em X"), igual ao padrão das runas. ===== */
+const POWER_ORDER=['p1','p2','p3','p4','p5'];
+const POWER_RES_LABEL={sl:'SL', le:'LE', nu:'NU', co:'CO', gems:'Gemas', rl:'Rune Luck', rb:'Rune Bulk', runeClone:'Rune Clone'};
+function powerMult(res){
+  let m=1;
+  for(const tier of POWER_ORDER){
+    const cnt=S.power[tier];
+    if(cnt<=0) continue;
+    for(const b of C.compost.power[tier].boosts){
+      if(b.additive || b.res!==res) continue;
+      const pct=(b.cap-1)/b.capAt;
+      m *= Math.min(1+pct*cnt, b.cap);
+    }
+  }
+  return m;
+}
+function powerCloneBonus(){
+  const cnt=S.power.p5;
+  if(cnt<=0) return 0;
+  const b=C.compost.power.p5.boosts.find(x=>x.res==='runeClone');
+  return Math.min(Math.floor(cnt/b.per)*b.rate, b.cap);
+}
+function powerCurrencyAmount(tier){
+  const cfg=C.compost.power[tier];
+  return cfg.costCur==='co' ? S.co : S.power[cfg.costCur];
+}
+function powerSpendCurrency(tier, amt){
+  const cfg=C.compost.power[tier];
+  if(cfg.costCur==='co') S.co-=amt; else S.power[cfg.costCur]-=amt;
+}
+function powerMaxAffordable(tier){
+  return Math.floor(powerCurrencyAmount(tier)/C.compost.power[tier].unitCost);
+}
+function powerCostLabel(tier){
+  const cfg=C.compost.power[tier];
+  const curLabel = cfg.costCur==='co' ? 'CO' : C.compost.power[cfg.costCur].name;
+  return `${fmt(cfg.unitCost)} ${curLabel}`;
+}
+function powerBoostText(tier){
+  const cfg=C.compost.power[tier], cnt=S.power[tier];
+  return cfg.boosts.map(b=>{
+    if(b.additive){
+      const cur=Math.min(Math.floor(cnt/b.per)*b.rate, b.cap);
+      return `+${fmt(cur)} ${POWER_RES_LABEL[b.res]} (máx +${b.cap}, a cada ${fmt(b.per)})`;
+    }
+    const pct=(b.cap-1)/b.capAt;
+    const mult=Math.min(1+pct*cnt, b.cap);
+    return `x${mult.toFixed(2)} ${POWER_RES_LABEL[b.res]} (máx x${b.cap} em ${fmt(b.capAt)})`;
+  }).join(' · ');
+}
+function buyPower(tier, mode){
+  const maxAff=powerMaxAffordable(tier);
+  let qty = mode==='half' ? Math.floor(maxAff/2) : mode==='max' ? maxAff : 1;
+  qty = Math.min(qty, maxAff);
+  if(qty<=0) return;
+  powerSpendCurrency(tier, qty*C.compost.power[tier].unitCost);
+  S.power[tier]+=qty;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function baseRuneExtra(){
+  // "+2 Runas base" (SL, LE e CO): somam ANTES de multiplicar por Bulk/Clone — diferente do bônus das Runas G/H,
+  // que soma DEPOIS. Ex.: sem nada = 1; com os dois comprados = 5; com bulk x2 em cima disso = 10.
+  let b=0;
+  if(S.slLvl.runebase1) b+=2;
+  if(S.leLvl.runeBaseLE1) b+=2;
+  if(S.coUpg.runeBaseBoost) b+=2;
+  return b;
+}
+
+/* Valor aditivo que dobra a cada marco de 10 níveis (recursivo).
+   Usado por: +1 Sun Light e +1 Nutrient. Ex.: nível 10 = +20, nível 20 = +80. */
+function slAdd1Amount(level){
+  let total=0, inc=1;
+  for(let l=1;l<=level;l++){
+    total+=inc;
+    if(l%10===0){ total*=2; inc*=2; }
+  }
+  return total;
+}
+function slAdd10Amount(level){
+  let total=0, inc=10;
+  for(let l=1;l<=level;l++){
+    total+=inc;
+    if(l%10===0){ total*=2; inc*=2; }
+  }
+  return total;
+}
+function slAdd100Amount(level){
+  let total=0, inc=100;
+  for(let l=1;l<=level;l++){
+    total+=inc;
+    if(l%10===0){ total*=2; inc*=2; }
+  }
+  return total;
+}
+
+/* Multiplicador em "1 + nível" que dobra a cada marco de 10 níveis (recursivo).
+   Usado por: Leaves (mult e slmult, até nível 30) e o multiplicador próprio de SL (até nível 10).
+   Ex.: nível 10 = x11 → dobra → x22 → soma 2/nível → nível 20 = x42 → dobra → x84. */
+function leavesTieredMult(level){
+  let M=1, inc=1;
+  for(let l=1;l<=level;l++){
+    M+=inc;
+    if(l%10===0){ M*=2; inc*=2; }
+  }
+  return M;
+}
+
+/* SL */
+function slInterval(){ return Math.max(0.02, C.slBaseInterval - 0.04*S.slLvl.cd - (S.slLvl.cd2?0.5:0)); }
+function slPerTick(){
+  // ORDEM: SL base+upgrades → LE mult → GROW → (nutrients não afetam SL) → ROOTS → RUNES
+  let v = C.slBaseAmount + slAdd1Amount(S.slLvl.add1);          // 1) SL
+  v *= leavesTieredMult(S.slLvl.mult);                         //    mult próprio de SL (dobra a cada 10 níveis)
+  v *= (S.slLvl.x2 ? 2 : 1);                                    //    x2 SL (compra única, 400 SL)
+  v *= (S.slLvl.slboost2 ? 2 : 1);                              //    x2 SL (compra única, 1T SL)
+  v *= (S.slLvl.slboost3 ? 2 : 1);                              //    x2 SL (compra única, 50T SL)
+  v *= (S.slLvl.slboost4 ? 2 : 1);                              //    x2 SL (compra única, 150T SL)
+  v *= (S.slLvl.slboost5 ? 2 : 1);                              //    x2 SL (compra única, 10Qa SL)
+  v *= (S.slLvl.slboost6 ? 2 : 1);                              //    x2 SL (compra única, 50Qa SL)
+  v *= leavesTieredMult(S.leLvl.slmult);                       // 2) LEAVES
+  v *= (S.leLvl.slBoost1?2:1) * (S.leLvl.slBoost2?2:1) * (S.leLvl.slBoost3?2:1) * (S.leLvl.slBoost4?2:1) * (S.leLvl.slBoost5?2:1) * (S.leLvl.slBoost6?100:1); //    x2/x4/x8/x16/x32/x3200 SL (compra com LE)
+  v *= growVal('sl',1);                                        // 3) GROW
+  v *= rootsVal('sl',1);                                       // 5) ROOTS
+  v *= runeMult('sl');                                         // 6) RUNES
+  v *= powerMult('sl');                                        // 7) POWER (Compost)
+  v *= gemSlMult();                                             // 8) GEMAS (+20%/nível)
+  v *= testAllMult();                                          // painel de teste: dobrar tudo
+  return ceil(v);
+}
+function slUpgFree(){ return growVal('slFree',false); }
+function leUpgFree(){ return growVal('leFree',false); }
+
+/* LE */
+function leUnlocked(){ return growVal('unlockLe',false); }
+function leBoostMult(){ return (S.slLvl.leboost1?2:1) * (S.slLvl.leboost2?2:1) * (S.slLvl.leboost3?2:1); }
+function testAllMult(){ return Math.pow(2, S.testBoost.all); }
+function testLuckMult(){ return Math.pow(2, S.testBoost.luck); }
+function testBulkMult(){ return Math.pow(2, S.testBoost.bulk); }
+function testCloneMult(){ return Math.pow(2, S.testBoost.clone); }
+const LEBOOST_COST = {1:100000000, 2:500000000, 3:5000000000};
+const LEBOOST_NAMES = {
+  1: {name:'x2 Leaves (compra com SL)', meta:'dobra o ganho de Leaves'},
+  2: {name:'x2 Leaves de novo (compra com SL)', meta:'dobra de novo (total x4)'},
+  3: {name:'x2 Leaves mais uma vez (compra com SL)', meta:'dobra de novo (total x8)'},
+};
+function leBoostCards(){
+  return [1,2,3].map(n=>{
+    if(S.slLvl['leboost'+n]) return ''; // comprado: some da tela
+    const info=LEBOOST_NAMES[n];
+    const cost=LEBOOST_COST[n];
+    const locked = n>1 && !S.slLvl['leboost'+(n-1)];
+    return `<div class="upg">
+      <div class="name">${info.name}</div>
+      <div class="meta">${locked?'requer o boost anterior':info.meta}</div>
+      <div class="lvl">0/1</div>
+      <button class="buybtn" data-leboost="${n}" ${(locked||S.sl<cost)?'disabled':''}>${fmt(cost)} SL</button>
+    </div>`;
+  }).join('');
+}
+function buyLeBoost(n){
+  const cost = LEBOOST_COST[n];
+  const key = 'leboost'+n;
+  if(S.slLvl[key]) return;
+  if(n>1 && !S.slLvl['leboost'+(n-1)]) return; // exige o boost anterior
+  if(S.sl<cost) return;
+  S.sl-=cost; S.slLvl[key]=1;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+const LE_ONE_TIME_ORDER = ['slBoost1','slBoost2','slBoost3','slBoost4','slBoost5','slBoost6','bulkBoost','luckBoost','luckBoost2','runeBaseLE1','bulkBoostCheap','bulkBoostMid','nuBoostLE1','nuBoostLE2','nuBoostLE3'];
+function buyLeOneTime(key){
+  if(S.leLvl[key]) return; // já comprado
+  // slBoost2 exige slBoost1, slBoost3 exige slBoost2 (bulkBoost e luckBoost são independentes)
+  if(key==='slBoost2' && !S.leLvl.slBoost1) return;
+  if(key==='slBoost3' && !S.leLvl.slBoost2) return;
+  const cost = leOneTimeCost(key);
+  if(S.le < cost) return; // SEMPRE cobra o preço cheio — nunca passa pelo leUpgFree() nem pelo auto-buy
+  S.le -= cost;
+  S.leLvl[key] = 1;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function leOnRebirth(){
+  // Gera com base na conversão ATUAL do SL que você tem guardado agora.
+  let base = Math.floor(S.sl / C.leRatio);
+  if(base<=0) return 0;
+  let v = base;
+  v *= leavesTieredMult(S.leLvl.mult); // LEAVES
+  v *= growVal('le',1);         // GROW
+  v *= rootsVal('le',1);        // ROOTS
+  v *= runeMult('le');          // RUNES
+  v *= powerMult('le');         // POWER (Compost)
+  v *= gemLeMult();             // GEMAS (+20%/nível)
+  v *= leBoostMult();           // boosts de Leaves comprados com SL
+  v *= testAllMult();           // painel de teste: dobrar tudo
+  return ceil(v);
+}
+function lePassivePct(){
+  const g = growVal('lePct',0);
+  return Math.max(g, S.keptLePct||0);
+}
+
+/* NU */
+function nuUnlocked(){ return growVal('unlockNu',false); }
+function nuInterval(){
+  // exponencial: 2s → 0.05s no nível 30 (fórmula usa cd.max, então ajusta sozinha)
+  const l=S.nuLvl.cd;
+  return C.nuBaseInterval * Math.pow(C.nuMinCooldown/C.nuBaseInterval, l/C.nuUpg.cd.max);
+}
+function nuCapacity(){ return C.nuBaseCapacity + 3*S.nuLvl.cap; }
+function nuPerCircle(){
+  let v = 1 + slAdd1Amount(S.nuLvl.add1); // NUTRIENT — mesma dinâmica de dobra a cada 10 níveis do +1 Sun Light
+  v += slAdd10Amount(S.nuLvl.add10);      // +10 Nutrient — mesma dinâmica, base 10
+  v += slAdd100Amount(S.nuLvl.add100);    // +100 Nutrient — mesma dinâmica, base 100
+  v *= growVal('nu',1);         // GROW
+  v *= rootsVal('nu',1);        // ROOTS
+  v *= runeMult('nu');          // RUNES
+  v *= powerMult('nu');         // POWER (Compost)
+  v *= gemNuMult();             // GEMAS (+20%/nível)
+  v *= (S.slLvl.nuboost1?2:1);  // x2 Nutrient (compra única de 300B SL)
+  v *= (S.slLvl.nuboostB?2:1);  // x2 Nutrient (compra única de 10T SL)
+  v *= (S.slLvl.nuboostC?2:1);  // x2 Nutrient (compra única de 150Qa SL)
+  v *= (S.slLvl.nuboostD?2:1);  // x2 Nutrient (compra única de 1Qi SL)
+  v *= (S.slLvl.nuboostE?2:1);  // x2 Nutrient (compra única de 25Sx SL)
+  v *= (S.leLvl.nuBoostLE1?2:1); // x2 Nutrient (compra única de 100Sx LE)
+  v *= (S.leLvl.nuBoostLE2?2:1); // x2 Nutrient (compra única de 2Sp LE)
+  v *= (S.leLvl.nuBoostLE3?2:1); // x2 Nutrient (compra única de 5No LE)
+  v *= (S.nuLvl.nuboost3?2:1);   // x2 Nutrient (compra única de 3,5T NU)
+  v *= (S.coUpg.nuBoost?2:1);    // x2 Nutrient (compra única de 350k CO)
+  v *= (S.nuLvl.nuboost2?2:1);  // x2 Nutrient (compra única de 10M NU)
+  v *= testAllMult();           // painel de teste: dobrar tudo
+  return ceil(v);
+}
+
+/* ===== COMPOST (CO) — geradores ===== */
+function compostUnlocked(){ return S.nuLvl.unlockCompost>0; }
+function coInterval(){
+  return Math.max(C.compost.minInterval, C.compost.baseInterval - 0.1*S.coUpg.cd);
+}
+function coPerTick(){
+  if(!compostUnlocked()) return 0;
+  let gen1 = C.compost.gen1.base * Math.pow(2, Math.max(0,S.gen1UpgLvl-1));
+  let gen2 = S.gen2Unlocked ? C.compost.gen2.base * Math.pow(2, Math.max(0,S.gen2UpgLvl-1)) : 0;
+  let v = gen1+gen2;
+  v *= Math.pow(2, S.coUpg.mult);   // 3K CO upgrade: dobra tudo por nível
+  v *= growVal('co',1);             // Grow 9
+  v *= rootsVal('co',1);            // Roots 4
+  v *= runeMult('co');              // Runa M
+  v *= powerMult('co');             // POWER (Compost)
+  v *= testAllMult();               // painel de teste
+  return ceil(v);
+}
+function buyGen1Upg(){
+  const cfg=C.compost.gen1Upg;
+  if(!compostUnlocked()) return;
+  if(S.gen1UpgLvl<1) S.gen1UpgLvl=1; // corrige saves antigos
+  if(S.gen1UpgLvl>=cfg.max) return;
+  const c=cost(cfg, S.gen1UpgLvl-1);
+  if(S.co<c) return;
+  S.co-=c; S.gen1UpgLvl++;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function buyGen2Unlock(){
+  if(S.gen2Unlocked) return;
+  if(S.co<C.compost.gen2.unlockCost) return;
+  S.co-=C.compost.gen2.unlockCost;
+  S.gen2Unlocked=true; S.gen2UpgLvl=1;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function buyGen2Upg(){
+  const cfg=C.compost.gen2Upg;
+  if(!S.gen2Unlocked || S.gen2UpgLvl<=0) return;
+  if(S.gen2UpgLvl>=cfg.max) return;
+  const c=cost(cfg, S.gen2UpgLvl-1);
+  if(S.co<c) return;
+  S.co-=c; S.gen2UpgLvl++;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function buyCoUpg(key){
+  const cfg=C.compost.coUpg[key];
+  if(S.coUpg[key]>=cfg.max) return;
+  const c=cost(cfg, S.coUpg[key]);
+  if(S.co<c) return;
+  S.co-=c; S.coUpg[key]++;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+function autoSl(){ return S.permAutoSl || growVal('autoSl',false); }
+function autoLe(){ return S.permAutoLe || growVal('autoLe',false); }
+function autoNu(){ return rootsVal('autoNu',false); }
+
+/* ===== GEMAS — árvore de upgrades em colmeia ===== */
+/* Arredondamento CUSTOM só pra gemas: ,4 ou menos → pra baixo; ,5 → pra baixo também; ,6 ou mais → pra cima.
+   (diferente do resto do jogo, que usa ceil — isso é só pra essa mecânica) */
+function gemRound(x){
+  const floor=Math.floor(x);
+  const frac=Math.round((x-floor)*10)/10; // evita erro de ponto flutuante tipo 0.5999999999
+  return frac>=0.6 ? floor+1 : floor;
+}
+function gemNodeMax(key){ return C.gems.tree[key].costs.length; }
+function gemNodeCost(key, level){ return C.gems.tree[key].costs[level]; }
+function gemMult(){
+  const t=C.gems.tree;
+  return Math.pow(1+t.gem1.effectPct, S.gemTree.gem1)
+       * Math.pow(1+t.gem2.effectPct, S.gemTree.gem2)
+       * Math.pow(1+t.gem4.effectPct, S.gemTree.gem4)
+       * (S.gemTree.gem6>0 ? t.gem6.effectMult : 1)
+       * (S.gemTree.gem12>0 ? t.gem12.effectMult : 1)
+       * powerMult('gems');       // POWER (Compost)
+}
+function gemSlMult(){ return Math.pow(1+C.gems.tree.gemSl.effectPct, S.gemTree.gemSl); }
+function gemLeMult(){ return Math.pow(1+C.gems.tree.gemLe.effectPct, S.gemTree.gemLe); }
+function gemNuMult(){ return Math.pow(1+C.gems.tree.gemNu.effectPct, S.gemTree.gemNu); }
+function autoBuyInstant(){ return S.autoBuyBoost || S.gemTree.abSpeed>0; } // BOOST manual (teste) OU upgrade de gemas comprado
+function gemInterval(){
+  const t=C.gems.tree;
+  return Math.max(C.gems.minInterval, C.gems.baseInterval - t.cd1.effectSec*S.gemTree.cd1 - t.cd2.effectSec*S.gemTree.cd2);
+}
+function gemsPerTick(){ return gemRound(C.gems.baseAmount*gemMult()); }
+function gemsPerMinute(){ return gemRound((60/gemInterval())*gemsPerTick()); }
+function gemNodeVisible(key){
+  const node=C.gems.tree[key];
+  if(node.free) return true;
+  if(!S.gemsHiveStarted) return false;
+  if(node.parent==='hive') return true; // filhos diretos da colmeia aparecem quando ela é clicada
+  return S.gemTree[node.parent]>0; // demais filhos aparecem assim que o pai é comprado 1 vez (não precisa maximizar)
+}
+function buyGemNode(key){
+  const node=C.gems.tree[key];
+  if(node.free) return;
+  if(!gemNodeVisible(key)) return;
+  const max=gemNodeMax(key);
+  if(S.gemTree[key]>=max) return;
+  const c=gemNodeCost(key, S.gemTree[key]);
+  if(S.gems<c) return;
+  S.gems-=c; S.gemTree[key]++;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  renderHive();
+}
+function clickGemHive(){
+  S.gemsHiveStarted=true;
+  renderHive();
+}
+function renderHive(){
+  const canvas=document.getElementById('hive-canvas');
+  if(!canvas) return;
+  canvas.innerHTML='';
+  const stepX=66, stepY=50;
+  for(const key in C.gems.tree){
+    if(!gemNodeVisible(key)) continue;
+    const node=C.gems.tree[key];
+    const level=node.free?null:S.gemTree[key];
+    const div=document.createElement('div');
+    div.className='hex';
+    div.style.left=`calc(50% + ${node.pos.x*stepX+hivePanX}px)`;
+    div.style.top=`calc(50% + ${node.pos.y*stepY+hivePanY}px)`;
+    div.dataset.gemnode=key;
+    let costText='';
+    if(!node.free){
+      const max=gemNodeMax(key);
+      costText = level>=max ? 'MÁXIMO' : fmt(gemNodeCost(key,level))+' 💎';
+      if(level>=max) div.classList.add('maxed');
+      else if(S.gems<gemNodeCost(key,level)) div.classList.add('disabled');
+    }
+    const bg = node.free?(S.gemsHiveStarted?'#6bc06a':'#8a8a8a'):node.color;
+    div.innerHTML = `<div class="hex-shape" style="background:${bg};">`
+      + `<div>${node.name}</div>`
+      + (node.free?'':`<div class="hexlvl">${level}/${gemNodeMax(key)}</div><div class="hexlvl">${costText}</div>`)
+      + `</div>`
+      + `<div class="hex-tooltip">${node.info}</div>`;
+    canvas.appendChild(div);
+  }
+}
+/* Só reposiciona (left/top) os hexágonos já existentes, sem tocar no conteúdo — usada
+   durante o arrastar, pra ser bem leve e não interromper o gesto. */
+function repositionHiveOnly(){
+  const stepX=66, stepY=50;
+  document.querySelectorAll('#hive-canvas [data-gemnode]').forEach(div=>{
+    const node=C.gems.tree[div.dataset.gemnode];
+    div.style.left=`calc(50% + ${node.pos.x*stepX+hivePanX}px)`;
+    div.style.top=`calc(50% + ${node.pos.y*stepY+hivePanY}px)`;
+  });
+}
+/* Atualização leve chamada a cada frame — só troca texto/classes, NUNCA remove/recria os
+   elementos (fazer isso a cada frame quebrava o clique: o navegador perdia o gesto de clique
+   porque o hexágono era destruído e recriado no meio do toque). */
+function updateHiveLive(){
+  document.querySelectorAll('#hive-canvas [data-gemnode]').forEach(div=>{
+    const key=div.dataset.gemnode;
+    const node=C.gems.tree[key];
+    if(node.free) return; // colmeia não tem custo/nível pra atualizar
+    const level=S.gemTree[key];
+    const max=gemNodeMax(key);
+    const maxed=level>=max;
+    div.classList.toggle('maxed', maxed);
+    div.classList.toggle('disabled', !maxed && S.gems<gemNodeCost(key,level));
+    const lvlEls=div.querySelectorAll('.hexlvl');
+    if(lvlEls[0]) lvlEls[0].textContent=level+'/'+max;
+    if(lvlEls[1]) lvlEls[1].textContent = maxed ? 'MÁXIMO' : fmt(gemNodeCost(key,level))+' 💎';
+  });
+}
+function buyMaxActive(){ return S.permBuyMax || growVal('buyMax',false); }
+
+/* =================== ACTIONS =================== */
+function buySl(key){
+  const cfg=C.slUpg[key];
+  if(S.slLvl[key]>=cfg.max) return;
+  const free = slUpgFree() && !cfg.alwaysPaid;
+  const max = buyMaxActive() && !S.buyMaxDisabled;
+  let bought=false;
+  do{
+    const c=slCost(cfg,S.slLvl[key]);
+    if(S.sl<c) break; // precisa TER o valor mesmo no modo "não gasta"
+    if(!free) S.sl-=c;
+    S.slLvl[key]++; bought=true;
+  } while(max && S.slLvl[key]<cfg.max);
+  if(bought){ S.timeSincePurchase=0; S.purchaseAlertShown=false; markDirty(); }
+}
+function buyLe(key){
+  const cfg=C.leUpg[key];
+  if(S.leLvl[key]>=cfg.max) return;
+  const free = leUpgFree();
+  const max = buyMaxActive() && !S.buyMaxDisabled;
+  let bought=false;
+  do{
+    const c=leCost(cfg,S.leLvl[key]);
+    if(S.le<c) break;
+    if(!free) S.le-=c;
+    S.leLvl[key]++; bought=true;
+  } while(max && S.leLvl[key]<cfg.max);
+  if(bought){ S.timeSincePurchase=0; S.purchaseAlertShown=false; markDirty(); }
+}
+function buyNu(key){
+  const cfg=C.nuUpg[key];
+  if(S.nuLvl[key]>=cfg.max) return;
+  const max = buyMaxActive() && !S.buyMaxDisabled;
+  let bought=false;
+  do{
+    const c=nuCost(cfg,S.nuLvl[key]);
+    if(S.nu<c) break;
+    S.nu-=c; S.nuLvl[key]++; bought=true;
+    if(key==='unlockCompost') S.gen1UpgLvl=1; // Gerador 1 já nasce ativo, no nível 1
+  } while(max && S.nuLvl[key]<cfg.max);
+  if(bought){ S.timeSincePurchase=0; S.purchaseAlertShown=false; markDirty(); }
+}
+function rebirth(){
+  const g=leOnRebirth();
+  if(g<=0) return;
+  S.le+=g;
+  S.sl=0;
+  S.peakSl=0;
+  // Leaves reseta só os upgrades RECORRENTES de Sun Light — as compras únicas (x2 SL e os 3 boosts de Leaves) ficam.
+  S.slLvl.add1=0; S.slLvl.cd=0; S.slLvl.mult=0; S.slLvl.cd2=0;
+  markDirty();
+}
+function ascendGrow(idx){
+  const t=C.grow[idx];
+  if(S.grow!==t.id-1) return;
+  const bal = t.cur==='sl'?S.sl : t.cur==='le'?S.le : t.cur==='co'?S.co : S.nu;
+  if(bal<t.cost) return;
+  if(t.cur==='sl')S.sl-=t.cost; else if(t.cur==='le')S.le-=t.cost; else if(t.cur==='co')S.co-=t.cost; else S.nu-=t.cost;
+  S.grow=t.id;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  if(t.onlyResetCO){
+    // Esse nível reseta SÓ o Compost (geradores e upgrades) — SL/LE/NU ficam intactos
+    S.co=0; S.gen1UpgLvl = compostUnlocked()?1:0; S.gen2Unlocked=false; S.gen2UpgLvl=0;
+    S.coUpg={cd:0,mult:0,luckBoost:0,runeBaseBoost:0,nuBoost:0};
+    S.power={p1:0,p2:0,p3:0,p4:0,p5:0};
+    S.accCo=0;
+  } else {
+    // GROW reseta upgrades de SL, LE e NU + quantidades de SL, LE e NU
+    S.sl=0; S.le=0; S.nu=0; S.peakSl=0;
+    S.slLvl={add1:0,cd:0,mult:0,x2:0,cd2:0,leboost1:0,leboost2:0,leboost3:0,nuboost1:0,slboost2:0,rbboost1:0,slboost3:0,slboost4:0,luckboost1:0,runebase1:0,rbboost0:0,nuboostB:0,slboost5:0,slboost6:0,nuboostC:0,nuboostD:0, nuboostE:0};
+    S.leLvl={mult:0,slmult:0,slBoost1:0,slBoost2:0,slBoost3:0,slBoost4:0,slBoost5:0,bulkBoost:0,luckBoost:0,luckBoost2:0,runeBaseLE1:0,bulkBoostCheap:0,bulkBoostMid:0,nuBoostLE1:0,nuBoostLE2:0,nuBoostLE3:0, slBoost6:0};
+    S.nuLvl={add1:0,add10:0,add100:0,cd:0,cap:0,nuboost2:0,unlockCompost:0,luckboostNU1:0,nuboost3:0};
+    S.circles=[];
+  }
+  if(t.autoSl) S.permAutoSl=true;
+  if(t.buyMax) S.permBuyMax=true;
+  if(t.autoLe) S.permAutoLe=true;
+  markDirty();
+}
+function debugActivateGrow(idx){
+  // Ativa qualquer nível de Grow na hora, de graça, pra testar o que vem depois sem precisar farmar.
+  const t=C.grow[idx];
+  S.grow=t.id;
+  S.sl=0; S.le=0; S.nu=0; S.co=0; S.peakSl=0;
+  S.slLvl={add1:0,cd:0,mult:0,x2:0,cd2:0,leboost1:0,leboost2:0,leboost3:0,nuboost1:0,slboost2:0,rbboost1:0,slboost3:0,slboost4:0,luckboost1:0,runebase1:0,rbboost0:0,nuboostB:0,slboost5:0,slboost6:0,nuboostC:0,nuboostD:0, nuboostE:0};
+  S.leLvl={mult:0,slmult:0,slBoost1:0,slBoost2:0,slBoost3:0,slBoost4:0,slBoost5:0,bulkBoost:0,luckBoost:0,luckBoost2:0,runeBaseLE1:0,bulkBoostCheap:0,bulkBoostMid:0,nuBoostLE1:0,nuBoostLE2:0,nuBoostLE3:0, slBoost6:0};
+  S.nuLvl={add1:0,add10:0,add100:0,cd:0,cap:0,nuboost2:0,unlockCompost:0,luckboostNU1:0,nuboost3:0};
+  S.gen1UpgLvl=0; S.gen2Unlocked=false; S.gen2UpgLvl=0;
+  S.coUpg={cd:0,mult:0,luckBoost:0,runeBaseBoost:0,nuBoost:0};
+  S.power={p1:0,p2:0,p3:0,p4:0,p5:0};
+  S.circles=[];
+  S.permAutoSl=false; S.permAutoLe=false; S.permBuyMax=false;
+  for(let i=0;i<=idx;i++){
+    if(C.grow[i].autoSl) S.permAutoSl=true;
+    if(C.grow[i].autoLe) S.permAutoLe=true;
+    if(C.grow[i].buyMax) S.permBuyMax=true;
+  }
+  markDirty();
+}
+function debugActivateRoots(idx){
+  // Ativa qualquer nível de Roots na hora, de graça, pra testar o que vem depois sem farmar.
+  const t=C.roots[idx];
+  const newRoots=t.id;
+  const runesKept={...S.runes};
+  const runesLEKept={...S.runesLE};
+  const runesNUKept={...S.runesNU};
+  const keepTestBoost={...S.testBoost};
+  const spd=S.speed;
+  const keepTotalPlayTime=S.totalPlayTime;
+  const keepSlowPurchaseCount=S.slowPurchaseCount;
+  let hasKeepRebirth=false;
+  for(let i=0;i<newRoots;i++){ if(C.roots[i].keepRebirthGen) hasKeepRebirth=true; }
+  let permAutoSl=false, permAutoLe=false;
+  if(!t.resetAutoBuy){ permAutoSl=S.permAutoSl; permAutoLe=S.permAutoLe; }
+  const permBuyMax=t.resetAutoBuy?false:S.permBuyMax;
+  const keepGrowLevel = t.keepGrow ? S.grow : 0;
+  const keepGems=S.gems, keepAccGems=S.accGems, keepGemsHiveStarted=S.gemsHiveStarted, keepGemTree={...S.gemTree};
+  S=freshState();
+  S.roots=newRoots;
+  S.runes=runesKept;
+  S.runesLE=runesLEKept;
+  S.runesNU=runesNUKept;
+  S.testBoost=keepTestBoost;
+  S.speed=spd;
+  S.totalPlayTime=keepTotalPlayTime;
+  S.slowPurchaseCount=keepSlowPurchaseCount;
+  S.permAutoSl=permAutoSl; S.permAutoLe=permAutoLe;
+  S.permBuyMax=permBuyMax;
+  S.gems=keepGems; S.accGems=keepAccGems; S.gemsHiveStarted=keepGemsHiveStarted; S.gemTree=keepGemTree;
+  if(hasKeepRebirth) S.keptLePct=growVal('lePct',0);
+  if(t.keepGrow) S.grow=keepGrowLevel;
+  markDirty();
+}
+function ascendRoots(idx){
+  const t=C.roots[idx];
+  if(S.roots!==t.id-1) return;
+  const cur=t.cur || C.rootsCurrency;
+  const bal = cur==='sl'?S.sl : cur==='le'?S.le : cur==='co'?S.co : S.nu;
+  if(bal<t.cost) return;
+  if(cur==='sl')S.sl-=t.cost; else if(cur==='le')S.le-=t.cost; else if(cur==='co')S.co-=t.cost; else S.nu-=t.cost;
+  const newRoots=t.id;
+  S.roots=newRoots;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  if(t.onlyResetCO){
+    // Esse nível reseta SÓ o Compost (geradores e upgrades) — tudo o mais fica intacto
+    S.co=0; S.gen1UpgLvl = compostUnlocked()?1:0; S.gen2Unlocked=false; S.gen2UpgLvl=0;
+    S.coUpg={cd:0,mult:0,luckBoost:0,runeBaseBoost:0,nuBoost:0};
+    S.power={p1:0,p2:0,p3:0,p4:0,p5:0};
+    S.accCo=0;
+    markDirty();
+    return;
+  }
+  const keepAutoSl=t.resetAutoBuy?false:S.permAutoSl, keepAutoLe=t.resetAutoBuy?false:S.permAutoLe;
+  const keepBuyMax=t.resetAutoBuy?false:S.permBuyMax;
+  let hasKeepRebirth=false;
+  for(let i=0;i<newRoots;i++){ if(C.roots[i].keepRebirthGen) hasKeepRebirth=true; }
+  const keepLePct = hasKeepRebirth ? lePassivePct() : 0;
+  const keepAutoBuyDisabled=S.autoBuyDisabled;
+  const keepTestBoost={...S.testBoost};
+  const runesKept={...S.runes};
+  const runesLEKept={...S.runesLE};
+  const runesNUKept={...S.runesNU};
+  const keepGrowLevel = t.keepGrow ? S.grow : 0;
+  const spd=S.speed;
+  const keepTotalPlayTime=S.totalPlayTime;
+  const keepSlowPurchaseCount=S.slowPurchaseCount;
+  const keepGems=S.gems, keepAccGems=S.accGems, keepGemsHiveStarted=S.gemsHiveStarted, keepGemTree={...S.gemTree};
+  S=freshState();
+  S.roots=newRoots;
+  S.runes=runesKept;
+  S.runesLE=runesLEKept;
+  S.runesNU=runesNUKept;
+  S.permAutoSl=keepAutoSl; S.permAutoLe=keepAutoLe;
+  S.permBuyMax=keepBuyMax;
+  S.keptLePct=keepLePct;
+  S.autoBuyDisabled=keepAutoBuyDisabled;
+  S.testBoost=keepTestBoost;
+  if(t.keepGrow) S.grow=keepGrowLevel;
+  S.speed=spd;
+  S.totalPlayTime=keepTotalPlayTime;
+  S.slowPurchaseCount=keepSlowPurchaseCount;
+  S.gems=keepGems; S.accGems=keepAccGems; S.gemsHiveStarted=keepGemsHiveStarted; S.gemTree=keepGemTree;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  markDirty();
+}
+/* Custo é POR RUNA, não por rolagem — se a Bulk fizer você "abrir" 102 mil runas mas só tiver
+   dinheiro pra 10, você recebe 10 (vezes o Clone, que é a única exceção: multiplica o resultado
+   sem multiplicar o custo). Retorna {afforded, totalCost, bulkQty} onde bulkQty é a quantidade
+   ANTES do Clone (a que determina o custo). */
+function affordableRuneQty(balance, costPerRune){
+  const bulkQty = Math.max(1, Math.ceil((1+baseRuneExtra()) * runeBulk()));
+  const totalCost = bulkQty * costPerRune;
+  const afforded = balance>=totalCost ? bulkQty : Math.floor(balance/costPerRune);
+  return {afforded, totalCost, bulkQty};
+}
+function rollRunes(){
+  const {afforded} = affordableRuneQty(S.sl, C.runeCost);
+  if(afforded<=0) return;
+  S.sl -= afforded*C.runeCost;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  const n = ceil(afforded * runeClone()) + runeBaseBonus();
+  const luck = runeLuck();
+  const got={A:0,B:0,C:0,D:0,K:0,N:0};
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    if(r < Math.min(1, luck/C.runes.N.chance)) got.N++;
+    else if(r < Math.min(1, luck/C.runes.K.chance)) got.K++;
+    else if(r < Math.min(1, luck/C.runes.D.chance)) got.D++;
+    else if(r < Math.min(1, luck/C.runes.C.chance)) got.C++;
+    else if(r < Math.min(1, luck/C.runes.B.chance)) got.B++;
+    else got.A++;
+  }
+  for(const k in got){ S.runes[k]+=got[k]; }
+  const parts=[];
+  for(const k of ['N','K','D','C','B','A']) if(got[k]) parts.push(got[k]+'x '+k);
+  logRune('▸ '+parts.join(', '));
+  markDirty();
+}
+function rollRunesLE(){
+  const {afforded} = affordableRuneQty(S.le, C.runeLECost);
+  if(afforded<=0) return;
+  S.le -= afforded*C.runeLECost;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  const n = ceil(afforded * runeClone()) + runeBaseBonus();
+  const luck = runeLuck();
+  const got={E:0,F:0,G:0,H:0,L:0};
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    if(r < Math.min(1, luck/C.runesLE.L.chance)) got.L++;
+    else if(r < Math.min(1, luck/C.runesLE.H.chance)) got.H++;
+    else if(r < Math.min(1, luck/C.runesLE.G.chance)) got.G++;
+    else if(r < Math.min(1, luck/C.runesLE.F.chance)) got.F++;
+    else got.E++;
+  }
+  for(const k in got){ S.runesLE[k]+=got[k]; }
+  const parts=[];
+  for(const k of ['L','H','G','F','E']) if(got[k]) parts.push(got[k]+'x '+k);
+  logRuneLE('▸ '+parts.join(', '));
+  markDirty();
+}
+function rollRunesNU(){
+  const {afforded} = affordableRuneQty(S.nu, C.runeNUCost);
+  if(afforded<=0) return;
+  S.nu -= afforded*C.runeNUCost;
+  S.timeSincePurchase=0; S.purchaseAlertShown=false;
+  const n = ceil(afforded * runeClone()) + runeBaseBonus();
+  const luck = runeLuck();
+  const got={I:0,J:0,M:0};
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    if(r < Math.min(1, luck/C.runesNU.M.chance)) got.M++;
+    else if(r < Math.min(1, luck/C.runesNU.J.chance)) got.J++;
+    else got.I++;
+  }
+  for(const k in got){ S.runesNU[k]+=got[k]; }
+  const parts=[];
+  for(const k of ['M','J','I']) if(got[k]) parts.push(got[k]+'x '+k);
+  logRuneNU('▸ '+parts.join(', '));
+  markDirty();
+}
+function logRune(msg){
+  const el=document.getElementById('rune-log');
+  if(!el) return;
+  const d=document.createElement('div'); d.textContent=msg;
+  el.prepend(d);
+  while(el.children.length>20) el.removeChild(el.lastChild);
+}
+function logRuneLE(msg){
+  const el=document.getElementById('rune-log-le');
+  if(!el) return;
+  const d=document.createElement('div'); d.textContent=msg;
+  el.prepend(d);
+  while(el.children.length>20) el.removeChild(el.lastChild);
+}
+function logRuneNU(msg){
+  const el=document.getElementById('rune-log-nu');
+  if(!el) return;
+  const d=document.createElement('div'); d.textContent=msg;
+  el.prepend(d);
+  while(el.children.length>20) el.removeChild(el.lastChild);
+}
+function autoBuyCheapest(section){
+  const cfgs = section==='sl'?C.slUpg:section==='le'?C.leUpg:C.nuUpg;
+  const lvls = section==='sl'?S.slLvl:section==='le'?S.leLvl:S.nuLvl;
+  const sectionFree = section==='sl'?slUpgFree():section==='le'?leUpgFree():false;
+  const bal  = section==='sl'?S.sl:section==='le'?S.le:S.nu;
+  let bk=null,bc=Infinity;
+  for(const k in cfgs){
+    if(lvls[k]>=cfgs[k].max) continue;
+    const c=section==='sl'?slCost(cfgs[k],lvls[k]):section==='le'?leCost(cfgs[k],lvls[k]):nuCost(cfgs[k],lvls[k]);
+    if(c<bc){bc=c;bk=k;}
+  }
+  if(!bk) return;
+  const free = sectionFree && !cfgs[bk].alwaysPaid;
+  if(bal>=bc){
+    if(!free){
+      if(section==='sl')S.sl-=bc; else if(section==='le')S.le-=bc; else S.nu-=bc;
+    }
+    lvls[bk]++; markDirty();
+  }
+}
+
+/* =================== NUTRIENT CIRCLES =================== */
+function spawnCircle(){
+  if(S.circles.length>=nuCapacity()) return;
+  S.circles.push({x:Math.random()*0.88+0.03, y:Math.random()*0.75+0.08, id:Math.random().toString(36).slice(2)});
+  circlesDirty=true;
+}
+function collectCircle(id){
+  const i=S.circles.findIndex(c=>c.id===id);
+  if(i<0) return;
+  S.circles.splice(i,1);
+  S.nu += nuPerCircle();
+  circlesDirty=true;
+}
+
+/* =================== UI: STRUCTURE (construída só quando muda) =================== */
+let dirty=true;         // estrutura precisa reconstruir
+let paused=false;       // pausa auto-buy, produção passiva e o cronômetro (não é salvo — sempre volta despausado)
+let circlesDirty=true;
+function markDirty(){ dirty=true; }
+
+const TABS=[['sl','☀️ Sun Light'],['le','🍃 Leaves'],['grow','🌿 Grow'],['nu','🌰 Nutrients'],['compost','🪱 Compost'],['roots','🪵 Roots'],['runes','🔮 Runes'],['bal','⚙️ Balance'],['notes','📝 Notas']];
+
+function buildTabs(){
+  const el=document.getElementById('tabs');
+  el.innerHTML='';
+  for(const [k,l] of TABS){
+    const locked = (k==='le'&&!leUnlocked()) || (k==='nu'&&!nuUnlocked()) || (k==='compost'&&!compostUnlocked());
+    const b=document.createElement('button');
+    b.className='tab'+(activeTab===k?' active':'')+(locked?' locked':'');
+    b.textContent=l+(locked?' 🔒':'');
+    b.dataset.tab=k;
+    el.appendChild(b);
+  }
+}
+
+function upgCard(section, key, cfg, btnClass, effectFn){
+  const lvl = section==='sl'?S.slLvl[key]:section==='le'?S.leLvl[key]:S.nuLvl[key];
+  if(lvl>=cfg.max) return ''; // maximizado: some da tela, só mostra o que ainda dá pra comprar
+  return `<div class="upg">
+    <div class="name">${cfg.name}</div>
+    <div class="meta" data-eff="${section}:${key}"></div>
+    <div class="lvl"><span data-lvl="${section}:${key}"></span>/${cfg.max}</div>
+    <button class="buybtn ${btnClass}" data-buy="${section}:${key}"></button>
+  </div>`;
+}
+
+function compostSection(){
+  if(!compostUnlocked()) return '';
+  const g1cfg=C.compost.gen1Upg, g2cfg=C.compost.gen2Upg;
+  const g1lvl=Math.max(1,S.gen1UpgLvl), g2lvl=S.gen2Unlocked?Math.max(1,S.gen2UpgLvl):0;
+  let h=`<div class="desc" style="margin-top:16px;margin-bottom:8px;">🪱 <b>Compost</b> — CO atual: <b class="c-nut" id="d-co"></b> · produção: <b><span id="d-coprod"></span></b>/tick a cada <b><span id="d-cointerval"></span></b>s.</div>
+  <div class="grid hscroll">
+    <div class="upg">
+      <div class="name">Gerador 1</div>
+      <div class="meta">${C.compost.gen1.base} CO base/tick · nível do upgrade ${g1lvl}/${g1cfg.max}</div>
+      ${g1lvl>=g1cfg.max?'<div class="maxtag">MÁXIMO</div>':`<button class="buybtn nut" id="btn-gen1upg">${fmt(cost(g1cfg,g1lvl-1))} CO</button>`}
+    </div>`;
+  if(!S.gen2Unlocked){
+    h+=`<div class="upg">
+      <div class="name">Gerador 2 (desbloquear)</div>
+      <div class="meta">Produz ${C.compost.gen2.base} CO base/tick depois de desbloqueado</div>
+      <button class="buybtn nut" id="btn-gen2unlock" ${S.co<C.compost.gen2.unlockCost?'disabled':''}>${fmt(C.compost.gen2.unlockCost)} CO</button>
+    </div>`;
+  } else {
+    h+=`<div class="upg">
+      <div class="name">Gerador 2</div>
+      <div class="meta">${C.compost.gen2.base} CO base/tick · nível do upgrade ${g2lvl}/${g2cfg.max}</div>
+      ${g2lvl>=g2cfg.max?'<div class="maxtag">MÁXIMO</div>':`<button class="buybtn nut" id="btn-gen2upg">${fmt(cost(g2cfg,g2lvl-1))} CO</button>`}
+    </div>`;
+  }
+  h+=`</div>
+  <div class="desc" style="margin-top:14px;margin-bottom:8px;">Upgrades gerais de Compost:</div>
+  <div class="grid hscroll">`;
+  const cu=C.compost.coUpg;
+  if(S.coUpg.cd<cu.cd.max) h+=`<div class="upg">
+      <div class="name">${cu.cd.name}</div>
+      <div class="meta">nível ${S.coUpg.cd}/${cu.cd.max} · cooldown atual: ${coInterval().toFixed(2)}s</div>
+      <button class="buybtn nut" data-coupg="cd" ${S.co<cost(cu.cd,S.coUpg.cd)?'disabled':''}>${fmt(cost(cu.cd,S.coUpg.cd))} CO</button>
+    </div>`;
+  if(S.coUpg.mult<cu.mult.max) h+=`<div class="upg">
+      <div class="name">${cu.mult.name}</div>
+      <div class="meta">nível ${S.coUpg.mult}/${cu.mult.max} · multiplicador atual: x${Math.pow(2,S.coUpg.mult)}</div>
+      <button class="buybtn nut" data-coupg="mult" ${S.co<cost(cu.mult,S.coUpg.mult)?'disabled':''}>${fmt(cost(cu.mult,S.coUpg.mult))} CO</button>
+    </div>`;
+  if(!S.coUpg.luckBoost) h+=`<div class="upg">
+      <div class="name">${cu.luckBoost.name}</div>
+      <div class="meta">dobra o Rune Luck permanentemente</div>
+      <button class="buybtn nut" data-coupg="luckBoost" ${S.co<cu.luckBoost.cost?'disabled':''}>${fmt(cu.luckBoost.cost)} CO</button>
+    </div>`;
+  if(!S.coUpg.runeBaseBoost) h+=`<div class="upg">
+      <div class="name">${cu.runeBaseBoost.name}</div>
+      <div class="meta">+2 na quantidade base de runas (soma antes de Bulk/Clone)</div>
+      <button class="buybtn nut" data-coupg="runeBaseBoost" ${S.co<cu.runeBaseBoost.cost?'disabled':''}>${fmt(cu.runeBaseBoost.cost)} CO</button>
+    </div>`;
+  if(!S.coUpg.nuBoost) h+=`<div class="upg">
+      <div class="name">${cu.nuBoost.name}</div>
+      <div class="meta">dobra o ganho de Nutrient permanentemente</div>
+      <button class="buybtn nut" data-coupg="nuBoost" ${S.co<cu.nuBoost.cost?'disabled':''}>${fmt(cu.nuBoost.cost)} CO</button>
+    </div>`;
+  h+=`</div>`;
+  h+=powerSection();
+  return h;
+}
+function powerSection(){
+  let h=`<div class="desc" style="margin-top:14px;margin-bottom:8px;">⚡ <b>Power</b> — cada unidade custa a "moeda" do tier anterior e dá bônus permanentes que sobem até um teto conforme a quantidade acumulada.</div><div class="grid">`;
+  for(const tier of POWER_ORDER){
+    const cnt=S.power[tier];
+    const maxAff=powerMaxAffordable(tier);
+    const half=Math.floor(maxAff/2);
+    h+=`<div class="upg">
+      <div class="name">${C.compost.power[tier].name} — possui <span id="power-${tier}-count">${fmt(cnt)}</span></div>
+      <div class="meta" id="power-${tier}-boost">${powerBoostText(tier)}</div>
+      <div class="meta">custo por unidade: ${powerCostLabel(tier)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <button class="buybtn nut" id="power-${tier}-one" data-power="${tier}:one" ${maxAff<1?'disabled':''}>Comprar 1</button>
+        <button class="buybtn nut" id="power-${tier}-half" data-power="${tier}:half" ${half<1?'disabled':''}>Comprar 50% (${fmt(half)})</button>
+        <button class="buybtn nut" id="power-${tier}-max" data-power="${tier}:max" ${maxAff<1?'disabled':''}>Comprar Máx (${fmt(maxAff)})</button>
+      </div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function leOneTimeCards(){
+  return LE_ONE_TIME_ORDER.map(key=>{
+    const cfg=C.leOneTime[key];
+    const bought=S.leLvl[key];
+    if(bought) return ''; // comprado: some da tela
+    let requiresPrev=null;
+    if(key==='slBoost2') requiresPrev='slBoost1';
+    if(key==='slBoost3') requiresPrev='slBoost2';
+    const locked = requiresPrev && !S.leLvl[requiresPrev];
+    const c=leOneTimeCost(key);
+    return `<div class="upg">
+      <div class="name">${cfg.name}</div>
+      <div class="meta">${locked?'requer o boost anterior':'ainda não comprado'}</div>
+      <div class="lvl">0/1</div>
+      <button class="buybtn leaf" data-leonetime="${key}" ${(locked||S.le<c)?'disabled':''}>${fmt(c)} LE</button>
+    </div>`;
+  }).join('');
+}
+
+function buildContent(){
+  const el=document.getElementById('content');
+  let h='';
+  if(activeTab==='sl'){
+    h=`<div class="panel"><h2>☀️ Sun Light</h2>
+      <div class="desc">Automático: <b><span id="d-slrate"></span></b>. <span id="d-slflags"></span></div>
+      <div class="grid">
+        ${upgCard('sl','add1',C.slUpg.add1,'')}
+        ${upgCard('sl','cd',C.slUpg.cd,'')}
+        ${upgCard('sl','mult',C.slUpg.mult,'')}
+        ${upgCard('sl','x2',C.slUpg.x2,'')}
+        ${upgCard('sl','cd2',C.slUpg.cd2,'')}
+        ${upgCard('sl','nuboost1',C.slUpg.nuboost1,'')}
+        ${upgCard('sl','slboost2',C.slUpg.slboost2,'')}
+        ${upgCard('sl','rbboost1',C.slUpg.rbboost1,'')}
+        ${upgCard('sl','slboost3',C.slUpg.slboost3,'')}
+        ${upgCard('sl','slboost4',C.slUpg.slboost4,'')}
+        ${upgCard('sl','luckboost1',C.slUpg.luckboost1,'')}
+        ${upgCard('sl','runebase1',C.slUpg.runebase1,'')}
+        ${upgCard('sl','rbboost0',C.slUpg.rbboost0,'')}
+        ${upgCard('sl','nuboostB',C.slUpg.nuboostB,'')}
+        ${upgCard('sl','slboost5',C.slUpg.slboost5,'')}
+        ${upgCard('sl','slboost6',C.slUpg.slboost6,'')}
+        ${upgCard('sl','nuboostC',C.slUpg.nuboostC,'')}
+        ${upgCard('sl','nuboostD',C.slUpg.nuboostD,'')}
+        ${upgCard('sl','nuboostE',C.slUpg.nuboostE,'')}
+      </div>
+      <div class="desc" style="margin-top:14px;margin-bottom:8px;">Boosts de Leaves comprados com SL (ficam nesta aba porque resetam junto no rebirth de Leaves). Multiplicador atual: <b>x${leBoostMult()}</b>:</div>
+      <div class="grid">${leBoostCards()}</div></div>`;
+  }
+  else if(activeTab==='le'){
+    if(!leUnlocked()){
+      h=`<div class="panel"><h2>🍃 Leaves</h2><div class="desc">Bloqueado — alcance o <b>Grow Level 2</b> (5.000 SL).</div></div>`;
+    } else {
+      h=`<div class="panel"><h2>🍃 Leaves — Rebirth</h2>
+        <div class="desc">Reseta Sun Light <b>e os upgrades de Sun Light</b>. Calcula com base no <b>SL que você tem guardado agora</b>. ${fmt(C.leRatio)} SL = 1 Leave (antes dos multiplicadores). <span id="d-lepassive"></span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="font-size:12px;">Ao renascer agora: <b class="c-leaf" style="font-family:ui-monospace,monospace;font-size:17px;" id="d-lepreview"></b></div>
+          <button class="bigbtn" id="btn-rebirth">Renascer</button>
+        </div>
+        <div class="grid">
+          ${upgCard('le','mult',C.leUpg.mult,'leaf')}
+          ${upgCard('le','slmult',C.leUpg.slmult,'leaf')}
+        </div>
+        <div class="desc" style="margin-top:14px;margin-bottom:8px;">Boosts permanentes comprados com LE (nunca ficam grátis, mesmo com o perk do Grow 8 — e não entram no auto-buy):</div>
+        <div class="grid">${leOneTimeCards()}</div></div>`;
+    }
+  }
+  else if(activeTab==='grow'){
+    h=`<div class="panel"><h2>🌿 Grow</h2>
+      <div class="desc">Sequencial. <b>Reseta os upgrades de SL e Leaves e as quantidades de SL e Leaves.</b> Cada level substitui os multiplicadores do anterior. O botão ⚡ ativa o nível na hora, de graça, só pra testar o que vem depois.</div>`;
+    C.grow.forEach((t,i)=>{
+      let r=`SL x${t.sl}`;
+      if(t.le>1)r+=` · LE x${t.le}`;
+      if(t.rl>1)r+=` · RL x${t.rl}`;
+      if(t.rb>1)r+=` · RB x${t.rb}`;
+      if(t.lePct)r+=` · +${t.lePct}% LE/s`;
+      if(t.unlockLe)r+=` · libera Leaves`;
+      if(t.unlockNu)r+=` · libera Nutrients`;
+      if(t.autoSl)r+=` · auto-buy SL`;
+      if(t.autoLe)r+=` · auto-buy LE`;
+      if(t.slFree)r+=` · upgrades SL grátis`;
+      if(t.leFree)r+=` · upgrades LE grátis`;
+      if(t.nu)r+=` · NU x${t.nu}`;
+      if(t.co)r+=` · CO x${t.co}`;
+      if(t.onlyResetCO)r+=` · reseta SÓ o Compost`;
+      h+=`<div class="tier" data-tier-grow="${i}">
+        <div class="row"><div class="t">Level ${t.id} — ${fmt(t.cost)} ${t.cur.toUpperCase()}</div>
+        <span style="display:flex;gap:6px;">
+          <span data-growbtn="${i}"></span>
+          <button class="buybtn" style="background:var(--rune);color:#120d24;" data-growdebug="${i}" title="Ativar este nível na hora, de graça (teste)">⚡ testar</button>
+        </span></div>
+        <div class="r">${r}</div></div>`;
+    });
+    h+=`</div>`;
+  }
+  else if(activeTab==='nu'){
+    if(!nuUnlocked()){
+      h=`<div class="panel"><h2>🌰 Nutrients</h2><div class="desc">Bloqueado — alcance o <b>Grow Level 6</b> (2M LE).</div></div>`;
+    } else {
+      h=`<div class="panel"><h2>🌰 Nutrients</h2>
+        <div class="desc">Passe o mouse (ou o dedo) sobre os círculos pra coletar. <span id="d-nustats"></span></div>
+        <div id="nu-field"><div id="nu-count-tag"></div></div>
+        <div class="grid">
+          ${upgCard('nu','add1',C.nuUpg.add1,'nut')}
+          ${upgCard('nu','add10',C.nuUpg.add10,'nut')}
+          ${upgCard('nu','add100',C.nuUpg.add100,'nut')}
+          ${upgCard('nu','cd',C.nuUpg.cd,'nut')}
+          ${upgCard('nu','cap',C.nuUpg.cap,'nut')}
+          ${upgCard('nu','nuboost2',C.nuUpg.nuboost2,'nut')}
+          ${upgCard('nu','unlockCompost',C.nuUpg.unlockCompost,'nut')}
+          ${upgCard('nu','luckboostNU1',C.nuUpg.luckboostNU1,'nut')}
+          ${upgCard('nu','nuboost3',C.nuUpg.nuboost3,'nut')}
+        </div></div>`;
+    }
+  }
+  else if(activeTab==='compost'){
+    if(!compostUnlocked()){
+      h=`<div class="panel"><h2>🪱 Compost</h2><div class="desc">Bloqueado — compre <b>Unlock Compost</b> na aba Nutrients (500 bilhões de NU).</div></div>`;
+    } else {
+      h=`<div class="panel"><h2>🪱 Compost</h2>${compostSection()}</div>`;
+    }
+  }
+  else if(activeTab==='roots'){
+    h=`<div class="panel"><h2>🪵 Roots</h2>
+      <div class="desc"><b>Reseta tudo menos as Runas.</b> Custo em ${C.rootsCurrency.toUpperCase()} (não especificado no documento — editável em Balance). O botão ⚡ ativa o nível na hora, de graça, só pra testar.</div>`;
+    C.roots.forEach((t,i)=>{
+      let parts=[`SL x${t.sl}`, `LE x${t.le}`, `NU x${t.nu}`];
+      if(t.rl!==undefined) parts.push(`RL x${t.rl}`);
+      if(t.rb!==undefined) parts.push(`RB x${t.rb}`);
+      if(t.rc!==undefined) parts.push(`RC x${t.rc}`);
+      if(t.co!==undefined) parts.push(`CO x${t.co}`);
+      let r=parts.join(' · ');
+      if(t.autoNu) r+=` · auto-buy Nutrients`;
+      if(t.keepRebirthGen) r+=` · mantém geração de rebirth`;
+      if(t.keepGrow) r+=` · não reseta Grow`;
+      if(t.resetAutoBuy) r+=` · reseta o auto-buy`;
+      if(t.onlyResetCO) r+=` · reseta SÓ o Compost`;
+      h+=`<div class="tier" data-tier-roots="${i}">
+        <div class="row"><div class="t">Nível ${t.id} — ${fmt(t.cost)} ${(t.cur||C.rootsCurrency).toUpperCase()}</div>
+        <span style="display:flex;gap:6px;">
+          <span data-rootsbtn="${i}"></span>
+          <button class="buybtn root" data-rootsdebug="${i}" title="Ativar este nível na hora, de graça (teste)">⚡ testar</button>
+        </span></div>
+        <div class="r">${r}</div></div>`;
+    });
+    h+=`</div>`;
+  }
+  else if(activeTab==='runes'){
+    h=`<div class="panel"><h2>🔮 Runes</h2>
+      <div class="desc">Você escolhe uma das três — não dá pra gerar mais de uma ao mesmo tempo. Segurar um botão para os outros dois. Sair da aba interrompe a geração. Luck atual: <b><span id="d-runeluck"></span></b> · Bônus de quantidade base: <b>+<span id="d-runebase"></span></b> (de runas G/H).</div>
+
+      <h2 style="font-size:14px;color:var(--sun);margin-top:4px;">☀️ Runas de Sun Light</h2>
+      <div class="desc">Cada runa custa <b>${fmt(C.runeCost)} SL</b> (não é por rolagem — se você não tiver pra todas, recebe só as que der). Com sua Bulk atual, uma rolagem completa geraria <b><span id="d-runeqty"></span></b> runa(s) por <b><span id="d-runecost"></span></b> SL no total.</div>
+      <button id="rune-hold">SEGURE PARA GERAR (SL)</button>
+      <div class="grid">`;
+    for(const k of ['A','B','C','D','K','N']){
+      const r=C.runes[k];
+      let eff=[];
+      if(r.sl)eff.push(`+${(r.sl*100).toFixed(2)}% SL/runa (máx x${r.slCap} SL)`);
+      if(r.le)eff.push(`+${(r.le*100).toFixed(2)}% LE/runa (máx x${r.leCap} LE)`);
+      if(r.nu)eff.push(`+${(r.nu*100).toFixed(2)}% NU/runa (máx x${r.nuCap} NU)`);
+      if(r.rl)eff.push(`+${(r.rl*100).toFixed(2)}% Rune Luck/runa (máx x${r.rlCap} RL)`);
+      if(r.rb)eff.push(`+${(r.rb*100).toFixed(2)}% Rune Bulk/runa (máx x${r.rbCap} RB)`);
+      if(r.baseBonusRate)eff.push(`+${r.baseBonusRate} na quantidade base/runa (máx +${r.baseBonusCap})`);
+      h+=`<div class="runecard">
+        <div class="rn">RUNE ${k} <span style="color:var(--dim);font-weight:400;">(base 1/${fmt(r.chance)} · agora <span data-runechance="${k}"></span>)</span></div>
+        <div class="re">${eff.join('<br>')}</div>
+        <div class="rc">×<span data-runecount="${k}"></span></div>
+        <div class="re" style="color:var(--rune);margin-top:4px;" data-runeboost="${k}"></div>
+        <button class="buybtn" style="margin-top:6px;background:var(--runed);color:#efe9ff;font-size:11px;padding:6px 8px;" data-maxrune="sl:${k}">MAXIMIZAR</button>
+      </div>`;
+    }
+    h+=`</div><div id="rune-log"></div>
+
+      <h2 style="font-size:14px;color:var(--leaf);margin-top:18px;">🍃 Runas de Leaves</h2>
+      <div class="desc">Cada runa custa <b>${fmt(C.runeLECost)} LE</b> (não é por rolagem). Com sua Bulk atual, uma rolagem completa geraria <b><span id="d-runeqty-le"></span></b> runa(s) por <b><span id="d-runecost-le"></span></b> LE no total.</div>
+      <button id="rune-hold-le" class="leaf-hold">SEGURE PARA GERAR (LE)</button>
+      <div class="grid">`;
+    for(const k of ['E','F','G','H','L']){
+      const r=C.runesLE[k];
+      let eff=[];
+      if(r.le)eff.push(`+${(r.le*100).toFixed(2)}% LE/runa (máx x${r.leCap} LE)`);
+      if(r.nu)eff.push(`+${(r.nu*100).toFixed(2)}% NU/runa (máx x${r.nuCap} NU)`);
+      if(r.sl)eff.push(`+${(r.sl*100).toFixed(2)}% SL/runa (máx x${r.slCap} SL)`);
+      if(r.rl)eff.push(`+${(r.rl*100).toFixed(2)}% Rune Luck/runa (máx x${r.rlCap} RL)`);
+      if(r.rb)eff.push(`+${(r.rb*100).toFixed(2)}% Rune Bulk/runa (máx x${r.rbCap} RB)`);
+      if(r.baseBonus)eff.push(`+${r.baseBonus} na quantidade base de runas (já na 1ª runa)`);
+      if(r.baseBonusRate)eff.push(`+${r.baseBonusRate} na quantidade base/runa (máx +${r.baseBonusCap})`);
+      h+=`<div class="runecard" style="border-color:var(--leafd);">
+        <div class="rn" style="color:var(--leaf);">RUNA ${k} <span style="color:var(--dim);font-weight:400;">(base 1/${fmt(r.chance)} · agora <span data-runechancele="${k}"></span>)</span></div>
+        <div class="re">${eff.join('<br>')}</div>
+        <div class="rc">×<span data-runecountle="${k}"></span></div>
+        <div class="re" style="color:var(--leaf);margin-top:4px;" data-runeboostle="${k}"></div>
+        <button class="buybtn leaf" style="margin-top:6px;font-size:11px;padding:6px 8px;" data-maxrune="le:${k}">MAXIMIZAR</button>
+      </div>`;
+    }
+    h+=`</div><div id="rune-log-le"></div>
+
+      <h2 style="font-size:14px;color:var(--nut);margin-top:18px;">🌰 Runas de Nutrients</h2>
+      <div class="desc">Cada runa custa <b>${fmt(C.runeNUCost)} NU</b> (não é por rolagem). Com sua Bulk atual, uma rolagem completa geraria <b><span id="d-runeqty-nu"></span></b> runa(s) por <b><span id="d-runecost-nu"></span></b> NU no total.</div>
+      <button id="rune-hold-nu" class="nu-hold">SEGURE PARA GERAR (NU)</button>
+      <div class="grid">`;
+    for(const k of ['I','J','M']){
+      const r=C.runesNU[k];
+      let eff=[];
+      if(r.nu)eff.push(`+${(r.nu*100).toFixed(2)}% NU/runa (máx x${r.nuCap} NU)`);
+      if(r.sl)eff.push(`+${(r.sl*100).toFixed(2)}% SL/runa (máx x${r.slCap} SL)`);
+      if(r.rl)eff.push(`+${(r.rl*100).toFixed(2)}% Rune Luck/runa (máx x${r.rlCap} RL)`);
+      if(r.co)eff.push(`+${(r.co*100).toFixed(2)}% CO/runa (máx x${r.coCap} CO)`);
+      h+=`<div class="runecard" style="border-color:var(--nutd);">
+        <div class="rn" style="color:var(--nut);">RUNA ${k} <span style="color:var(--dim);font-weight:400;">(base 1/${fmt(r.chance)} · agora <span data-runechancenu="${k}"></span>)</span></div>
+        <div class="re">${eff.join('<br>')}</div>
+        <div class="rc">×<span data-runecountnu="${k}"></span></div>
+        <div class="re" style="color:var(--nut);margin-top:4px;" data-runeboostnu="${k}"></div>
+        <button class="buybtn nut" style="margin-top:6px;font-size:11px;padding:6px 8px;" data-maxrune="nu:${k}">MAXIMIZAR</button>
+      </div>`;
+    }
+    h+=`</div><div id="rune-log-nu"></div></div>`;
+  }
+  else if(activeTab==='bal'){
+    h=`<div class="panel"><h2>⚙️ Balance — edite ao vivo</h2>
+      <div class="desc">Custo = base × taxa^nível (arredondado pra cima). Alterações valem na hora.</div>`;
+    const sec=(title,color)=>`<div class="cfgsec" style="color:${color};">${title}</div>
+      <div class="cfgrow hd"><div>Upgrade</div><div>Custo base</div><div>Taxa</div></div>`;
+    h+=sec('Sun Light','var(--sun)');
+    for(const k in C.slUpg) h+=cfgRow('slUpg',k);
+    h+=sec('Leaves','var(--leaf)');
+    for(const k in C.leUpg) h+=cfgRow('leUpg',k);
+    h+=sec('Nutrients','var(--nut)');
+    for(const k in C.nuUpg) h+=cfgRow('nuUpg',k);
+    h+=sec('Geral','var(--text)');
+    h+=numRow('Intervalo base SL (s)','slBaseInterval');
+    h+=numRow('SL base por tick','slBaseAmount');
+    h+=numRow('SL por 1 Leave','leRatio');
+    h+=numRow('Cooldown base NU (s)','nuBaseInterval');
+    h+=numRow('Capacidade base NU','nuBaseCapacity');
+    h+=numRow('Custo da rolagem de runa (SL)','runeCost');
+    h+=numRow('Custo da rolagem de runa (LE)','runeLECost');
+    h+=numRow('Custo da rolagem de runa (NU)','runeNUCost');
+    h+=numRow('Intervalo da rolagem de runa (s)','runeRollInterval');
+    h+=sec('Roots (custos — assumidos)','var(--root)');
+    C.roots.forEach((t,i)=>{ h+=`<div class="cfgrow"><div>Roots nível ${t.id}</div>
+      <input type="number" value="${t.cost}" data-rootcost="${i}"><div></div></div>`; });
+    h+=`</div>`;
+  }
+  else if(activeTab==='notes'){
+    h=`<div class="panel"><h2>📝 Interpretações / pontos em aberto</h2><div class="notes">
+      Tudo que o documento define, segui à risca (custos, taxas, caps, resets, ordem da fórmula, arredondar pra cima). O que não estava definido, assumi assim — me corrige onde precisar:
+      <ul>
+        <li><b>+1 Sun Light</b>: +1/nível até o nível 9. No nível 10 o total dobra (fica +20). Do nível 11 ao 20, soma +2/nível, terminando em +40 no total.</li>
+        <li><b>+1 Sun Light</b>: mesmo padrão das Leaves agora — dobra a cada marco de 10 níveis. Nível 10 = +20, nível 20 = +80.</li>
+        <li><b>Upgrades de Leaves (x Leaves e x SL)</b>: multiplicador soma +1/nível, mas dobra por completo a cada marco de 10 níveis. Nível 10 = x22, nível 20 = x84 (dobra duas vezes dentro do teto de 20 níveis).</li>
+        <li><b>Boost de Leaves com SL</b>: ficam na aba <b>Sun Light</b> (não em Leaves), porque assim resetam junto quando você renasce. 100M SL dobra o ganho de Leaves, 500M dobra de novo (x4), 1,5B dobra mais uma vez (x8). Cada um só libera depois do anterior ser comprado.</li>
+        <li><b>Boost atual das Runas</b>: cada card agora mostra o efeito real com a quantidade de runas que você tem (ex.: 100 runas A = +10% SL), recalculado ao vivo.</li>
+        <li><b>Painel de teste de venda de boosts</b> (lateral direita): 4 botões que dobram a cada clique — Rune Luck, Rune Bulk, Rune Clone isoladamente, e "2x TUDO" que dobra literalmente tudo (SL, Leaves, Nutrients, Luck, Bulk, Clone) de uma vez. É só pra simular o impacto de vender esses boosts — não reseta com Grow ou Leaves, só com Roots (mantém o valor).</li>
+        <li><b>Upgrade "+10 Sun Light"</b>: removido, como pedido.</li>
+        <li><b>Custo do Roots</b>: o documento não diz quanto custa cada nível nem em qual moeda. Assumi NU (5M e 1B), editável em Balance.</li>
+        <li><b>Velocidade de geração de runas</b>: segurando o botão, 1 rolagem a cada 0,5s (editável). <b>O custo é por runa, não por rolagem</b> — se sua Bulk fizer você "abrir" 102 mil runas mas você só tiver dinheiro pra 10, você recebe 10 (e paga só por essas 10). <b>Rune Clone é a única exceção</b>: ele multiplica o resultado final sem multiplicar o custo — se você tem Clone x3 e conseguiu pagar por 10 runas, recebe 30 runas pelo preço de 10. Cada runa sorteia o tipo independentemente (mais raro → mais comum, com Luck multiplicando as chances raras).</li>
+        <li><b>Rune Luck</b> multiplica a chance das runas raras. <b>Rune Bulk</b> multiplica quantas runas saem por rolagem. <b>Rune Clone</b> multiplica de novo o total (clonagem).</li>
+        <li><b>"Mantém geração de rebirth"</b> (Roots 2): mantive o % de Leaves/s que você tinha antes do reset.</li>
+        <li><b>Leaves calcula pelo SL atual</b>: a conversão usa o SL que você tem guardado agora, não um pico histórico.</li>
+        <li><b>Leaves reseta os upgrades de Sun Light</b>: ao renascer, os upgrades de SL voltam ao nível 0 (Leaves e Grow continuam intactos).</li>
+        <li><b>Upgrade "x2 Sun Light"</b>: compra única por 400 SL, dobra o ganho de SL permanentemente. Reseta junto com os outros upgrades de SL (Grow e Leaves).</li>
+        <li><b>Upgrade "-0,5s Sun Light Cooldown"</b>: compra única por 5.000.000 SL (assumi único, não por nível — editável se for o caso).</li>
+        <li><b>Clique manual de SL</b>: o botão ☀️ na lateral esquerda dá, a cada clique, a mesma quantidade que um tick automático daria (sem cooldown próprio — clica quantas vezes quiser).</li>
+        <li><b>Botão de auto-buy</b>: aparece na lateral esquerda assim que qualquer auto-buy é desbloqueado (Grow 5 ou 7) e liga/desliga todos os auto-buy de uma vez.</li>
+        <li><b>Upgrade "x2 Nutrient"</b>: compra única por 200 bilhões de SL, na aba Sun Light (mesma regra dos outros boosts: reseta só no Grow, sobrevive ao rebirth de Leaves).</li>
+        <li><b>Runa C</b>: SL e LE maximizam em 1.000 runas (x5 cada); Rune Luck maximiza separadamente em 20 runas (x2). Chance 1/10.000.</li>
+        <li><b>Runa D</b>: SL e LE maximizam em 500 runas (x10 cada); Rune Bulk maximiza separadamente em 10 runas (x2). Chance 1/50.000.</li>
+        <li><b>Novo pool de Runas de Leaves (E, F, G, H)</b>: rolagem separada por 1.000.000 LE, com seu próprio botão de segurar. Segurar um dos dois botões (SL ou LE) automaticamente para o outro — só dá pra gerar um de cada vez, como você pediu.</li>
+        <li><b>Nutrient cooldown</b>: máximo 30 níveis (era 50) — a fórmula de queda até 0,05s se ajusta sozinha por já ser proporcional ao nível máximo.</li>
+        <li><b>Runa D</b>: chance ajustada pra 1/200.000. <b>Runa H</b>: chance ajustada pra 1/2.000.000.</li>
+        <li><b>Grow também zera Nutrient</b> (moeda e os 3 upgrades de Nutrient) ao subir de nível, igual já acontecia com SL e LE.</li>
+        <li><b>Grow 8</b>: multiplicador de Nutrient corrigido de x2 para <b>x4</b>.</li>
+        <li><b>Roots reorganizado</b>: o nível 2 não segura mais a geração passiva de rebirth — isso foi pro <b>nível 3</b> (novo), que também dá RC x8, RL/RB x20, SL x100, LE x50, NU x20. Custo do nível 3 não foi especificado — assumi 200 bilhões de NU, editável em Balance.</li>
+        <li><b>Dois boosts novos pagos com SL</b> (aba Sun Light): 1 trilhão → x2 Sun Light (mais uma camada, empilha com o de 400 SL), 50 trilhões → x2 Rune Bulk. Os dois marcados como "sempre pagos" — nunca ficam grátis mesmo com o perk do Grow 6 ativo.</li>
+        <li><b>Cinco boosts pagos com LE</b> (aba Leaves): 20T/200T/10Qa → x2 Sun Light cada (sequenciais), 50Qa → x2 Rune Bulk, 150Qa → x2 Rune Luck (custos atualizados). Fora do sistema normal de upgrades de Leaves — nunca ficam grátis com o perk do Grow 8, e nunca são pegos pelo auto-buy.</li>
+        <li><b>Roots 1</b> agora dá <b>auto-buy dos upgrades de Nutrients</b> (aparece no mesmo botão da lateral esquerda, junto com os de SL/LE).</li>
+        <li><b>Roots 2 e 3</b>: não somam mais bônus extra de Rune Bulk/Luck — o valor fica travado no que o Roots 1 já dá (x5), em vez de escalar pra x10/x20.</li>
+        <li><b>Roots 3 não reseta mais o Grow</b>: ao ascender pra esse nível, seu nível de Grow atual é preservado (os upgrades ligados a SL/LE ainda resetam normalmente, só o nível de Grow em si que fica).</li>
+        <li><b>Dois novos upgrades em Sun Light</b>: 50T e 150T SL, cada um dobra o ganho de SL de novo (empilham com os outros já existentes). Ambos sempre pagos, protegidos do perk de graça.</li>
+        <li><b>Novo upgrade em Nutrients</b>: 10 milhões de NU, dobra o ganho de Nutrient (compra única).</li>
+        <li><b>Runa C</b>: chance ajustada pra 1/50.000. <b>Runa D</b>: chance ajustada pra 1/1.000.000.</li>
+        <li><b>Grow 4</b>: custo subiu pra 1 bilhão de SL.</li>
+        <li><b>Novo upgrade em Sun Light</b>: 100M SL → x2 Rune Luck (compra única).</li>
+        <li><b>Novo upgrade em Sun Light</b>: 20M SL → +2 na quantidade base de runas por rolagem. Esse "+2" soma <b>antes</b> de multiplicar por Bulk/Clone (diferente do bônus das Runas G/H, que soma depois) — testei: base 1 vira 3 só com esse, e com Bulk x2 em cima vira 6, não 4.</li>
+        <li><b>Novo upgrade em Leaves</b>: 100.000 LE → +2 na quantidade base de runas (mesma regra acima — some com o de SL: os dois juntos dão base 5).</li>
+        <li><b>Novo upgrade em Sun Light</b>: 100M SL → x2 Rune Bulk (camada mais barata, empilha com o de 50T SL que já existia).</li>
+        <li><b>Novo upgrade em Leaves</b>: 2.000.000 LE → x2 Rune Bulk (camada mais barata, empilha com o de 50Qa que já existia). Fica na estrutura protegida de boosts únicos (nunca grátis, nunca no auto-buy).</li>
+        <li><b>Dois cronômetros</b> (embaixo, ao lado de Velocidade): "Total" conta o tempo de jogo acumulado desde o início (sobrevive a Grow, Leaves e Roots — só reinicia se você der "Reiniciar tudo"). "Desde a última compra" reseta toda vez que você compra um upgrade (SL, LE ou NU), sobe de Grow ou de Roots, <b>e agora também sempre que coleta runas (nas três rolagens)</b>. Os dois contam em tempo de jogo (acompanham a velocidade 1x/10x/50x/200x). <b>Assumi que Rebirth de Leaves não reseta</b> esse cronômetro, já que você não citou — me avisa se quiser incluir.</li>
+        <li><b>Terceiro contador (alerta de 30s)</b>: aparece do lado do cronômetro "Desde a última compra" (⚠ 30s+). O número que já vinha do intervalo de 30 segundos passa a ficar vermelho quando o intervalo atual já passou de 30s, e o contador soma +1 toda vez que um intervalo entre compras ultrapassa 30 segundos (um incremento por intervalo, não conta de novo enquanto o mesmo intervalo continua passando de 30s). Fica escondido até acontecer a primeira vez.</li>
+        <li><b>Bug corrigido — "não gasta mais" estava literalmente grátis</b>: confirmei o bug antes de mexer (reproduzi com o multiplicador de SL custando 1.000 SL, saldo 0, e o Grow 6 ativo — o botão aparecia "GRÁTIS" e comprava mesmo sem ter o dinheiro). Corrigido em SL, Leaves e no auto-buy: agora sempre precisa <b>ter</b> o valor pra clicar, só não é <b>deduzido</b> quando o perk "não gasta" está ativo. O texto do botão agora mostra o custo real com "(não gasta)" do lado, em vez de "GRÁTIS".</li>
+        <li><b>Upgrades maximizados somem da tela</b>: tanto os upgrades normais (SL, Leaves, Nutrients) quanto os boosts únicos comprados com LE — assim que atingem o nível máximo (ou são comprados, no caso dos únicos), o card inteiro desaparece da lista, sobrando só o que ainda pode ser comprado.</li>
+        <li><b>Grow 6</b>: custo subiu pra 20 bilhões de Leaves.</li>
+        <li><b>Novo upgrade em Leaves</b>: 2.000.000.000 (2 bilhões) LE → x2 Rune Bulk (mais uma camada, empilha com as de 2M e 50Qa que já existiam).</li>
+        <li><b>Novo upgrade em Sun Light</b>: 10 trilhões de SL → x2 Nutrient (mais uma camada, empilha com a de 200B que já existia — os dois juntos dão x4).</li>
+        <li><b>Reconfirmado: upgrades únicos somem da tela</b> — testei de novo, comprando um de cada vez, trocando de aba e voltando, os 4 mais recentes (Luck, Runas base, Bulk barato, e o novo de Nutrient) desapareceram corretamente depois de comprados.</li>
+        <li><b>Bug real encontrado nos 3 boosts de Leaves (100M/500M/1,5B SL)</b>: esses três usavam um bloco de HTML separado que eu esqueci de atualizar — ele trocava o botão por "MÁXIMO" mas nunca removia o card de verdade. Corrigido: agora usam o mesmo sistema dos outros e desaparecem igual. Peço desculpa por isso ter passado antes.</li>
+        <li><b>Botão ⚡ testar em Roots</b>: igual o do Grow, ativa qualquer nível de Roots na hora, de graça, preservando Runas e o painel de teste.</li>
+        <li><b>Botão MAXIMIZAR em cada runa</b> (SL e Leaves): define a quantidade daquela runa pro valor exato que satura todos os efeitos dela (o maior "quanto precisa" entre os stats que ela afeta).</li>
+        <li><b>Roots reorganizado de novo</b>: nível 1 agora <b>reseta o auto-buy</b> (zera o que o Grow tinha liberado) ao ser comprado. O auto-buy de Nutrients saiu do nível 1 e foi pro <b>nível 2</b>. Nível 3 mantém tudo (auto-buy, geração de rebirth, e o Grow) sem resetar.</li>
+        <li><b>Corrigido "xundefined" e Rune Clone em Roots 2/3</b>: a descrição só mostra RL/RB/RC quando aquele nível realmente define um valor novo — já que 2 e 3 não aumentam mais RL/RB/RC, esses stats só aparecem no nível 1 agora (o valor continua valendo pros níveis seguintes, só não some mais como "undefined").</li>
+        <li><b>Custos de 3 boosts de Leaves subiram</b>: o de 200T virou 5Qa, o de 10Qa virou 100Qa, o de 50Qa virou 1Qi (quintilhão).</li>
+        <li><b>Capacidade de Nutrients</b>: máximo caiu de 50 pra 30 níveis.</li>
+        <li><b>Novo terceiro pool de Runas: Nutrients (I e J)</b>: rolagem separada por 10.000.000 NU, com botão de segurar próprio na mesma aba Runes. Agora são <b>três</b> pools (SL, Leaves, Nutrients) com exclusão mútua total — só um de cada vez, como testei. Runa J: chance ajustada pra 1/6.000.000.</li>
+        <li><b>Runa I</b>: adicionado 2x Rune Luck, maximizando em 1000 runas (igual os outros stats dela).</li>
+        <li><b>Runa H</b>: o boost de NU caiu de máx 5x pra <b>máx 3x</b>, mantendo a mesma quantidade de runas pra maximizar (2000).</li>
+        <li><b>Três novos upgrades em Sun Light</b>: 10Qa → x2 SL, 50Qa → x2 SL (mais duas camadas empilhando com as anteriores), e 150Qa → x2 Nutrient (mais uma camada).</li>
+        <li><b>Novo upgrade em Leaves</b>: 100 sextilhões de LE → x2 Nutrient (fica na estrutura protegida de boosts únicos, nunca grátis, nunca no auto-buy).</li>
+        <li><b>Formatação de números estendida pra todas as moedas</b>: depois de Sx (sextilhão) agora continua com Sp, Oc, No, De, Ud, Dd, Td, Qd, Qid, Sxd, Spd, Ocd, Nod, Ded — testei valores extremos (até 1e50) e a formatação bate certinho.</li>
+        <li><b>Três novos upgrades</b>: 2 Sp de LE → x2 Nutrient, 25 Sp de LE → x2 Sun Light (ambos na estrutura protegida de boosts de Leaves), e 1 Qi de SL → x2 Nutrient (aba Sun Light, sempre pago).</li>
+        <li><b>Runa K (pool de Sun Light)</b>: chance 1/4.500.000.000. Dá x2 Rune Bulk (2 runas), x2 Rune Luck (4 runas), +2 na quantidade base de runas (2 runas), x5 SL e x5 LE (10 runas cada). Testei a combinação inteira maximizada e bateu certinho.</li>
+        <li><b>Runa L (pool de Leaves)</b>: chance 1/18.000.000.000. Dá x5 NU (10 runas), x5 SL (10 runas), x2 Rune Bulk (4 runas).</li>
+        <li><b>Novo mecanismo: bônus de quantidade base que escala</b> — diferente das Runas G/H (que dão +1 fixo assim que você tem 1 cópia), a Runa K usa um bônus que cresce com a quantidade até um teto (+1/runa até +2 no máximo, saturando em 2 runas). O botão MAXIMIZAR já calcula isso certinho.</li>
+        <li><b>Sistema novo: Compost (CO)</b> — desbloqueado na aba Nutrients por 500 bilhões de NU. Vira uma nova moeda com "geradores" no lugar dos droppers físicos (não dá pra fazer droppers de verdade em HTML, então virou um gerador automático com produção e upgrade próprios):
+          <ul>
+            <li>Gerador 1: já nasce ativo no nível 1 assim que desbloqueia. 1 CO a cada 2,5s. Upgrade custa 5 CO, dobra a produção por nível, +75% de custo por nível, até o nível 10.</li>
+            <li>Gerador 2: precisa desbloquear por 2.000 CO. Produz 10 CO a cada 2,5s. Upgrade custa 1.000 CO, mesma regra de dobrar/75%/nível 10.</li>
+            <li>Painel geral: -0,1s de cooldown/nível (1K CO, +50%/nível, até nível 5, afeta os dois geradores); x2 CO total/nível (3K CO, custo triplica/nível, até nível 5); x2 Rune Luck (5K CO, compra única); +2 runa base (10K CO, compra única, soma antes de Bulk/Clone).</li>
+          </ul>
+        </li>
+        <li><b>Runa M (pool de Nutrients)</b>: chance 1/1,5 trilhão. x4 NU (150 runas) e x2 CO (20 runas).</li>
+        <li><b>Grow 9</b> (50.000 CO) e <b>Roots 4</b> (1.000.000 CO): os dois resetam <b>só o Compost</b> (geradores e upgrades voltam ao início, mas o Gerador 1 reativa sozinho já que o Compost continua desbloqueado) — SL, LE, NU e tudo mais ficam intactos, diferente de como Grow/Roots funcionavam até agora. Testei os dois casos e confirmei que SL/LE/NU não mudam nem um pouco.</li>
+        <li><b>Bug corrigido — Gerador 1 não comprava</b>: no seu save, ele estava salvo com o nível do upgrade em 0 (de antes da regra "já nasce no nível 1" ser implementada corretamente), e o botão de compra bloqueava justamente porque checava esse nível. Adicionei uma correção automática: toda vez que o jogo detecta Compost desbloqueado com esse nível zerado, ele conserta sozinho pro nível 1 — testei carregando esse exato cenário e confirmou que resolve.</li>
+        <li><b>Compost agora tem aba própria</b> (🪱), junto de Sun Light/Leaves/Nutrients/Runes — fica bloqueada até você comprar o Unlock Compost na aba Nutrients.</li>
+        <li><b>Rolagem horizontal nos cards do Compost</b>: os dois grupos de cards (geradores e upgrades gerais) agora scrollam pro lado em vez de cortar o conteúdo, caso não caibam todos na largura da tela.</li>
+        <li><b>Dois novos upgrades em Nutrients</b>: 200 bilhões de NU → x2 Rune Luck, 3,5 trilhões de NU → x2 Nutrient (mais uma camada).</li>
+        <li><b>Novo upgrade em Compost</b>: 350.000 CO → x2 Nutrient (compra única, no painel geral de upgrades do Compost).</li>
+        <li><b>Runa L</b>: chance ajustada pra 1/400 bilhões.</li>
+        <li><b>Boost de 25 Sp de LE</b>: custo reduzido pra 10 Sp.</li>
+        <li><b>Coleta de Nutrients por raio</b>: antes só coletava passando exatamente em cima do círculo; agora coleta qualquer círculo dentro de um raio de 34px ao redor do mouse/dedo (o diâmetro do próprio círculo), então não precisa mais acertar o centro exato — testei a distância certa coletando e uma distância maior não coletando.</li>
+        <li><b>Custos ajustados</b>: Grow 2 (25K SL), Grow 3 (5M SL), Grow 5 (500M LE), Grow 6 (50B LE), Grow 7 (25K NU), Roots 1 (10M NU), Unlock Compost (1 trilhão de NU).</li>
+        <li><b>Auto-buy de Nutrients mudou de lugar</b>: saiu do Roots 2 e foi pro Roots 3.</li>
+        <li><b>Buy Max (Grow 8)</b>: novo botão na lateral esquerda, embaixo do auto-buy — quando ativado, clicar em qualquer upgrade de SL/Leaves/Nutrients compra o máximo de níveis que der pra pagar de uma vez (ex.: com dinheiro pros 3 primeiros níveis, um clique já compra os 3). Testei com e sem o botão ativado e os dois comportamentos bateram certinho.</li>
+        <li><b>Runas recalculadas</b>: Runa K e Runa I precisam de +50% de runas pra maximizar cada stat, Runa L precisa do dobro (+100%). Runa J, Runa M e Runa A ficaram exatamente iguais. Todas as outras (B, C, D, E, F, G, H) agora precisam de 3x mais runas pra maximizar cada stat percentual (os bônus fixos tipo o das Runas G/H não mudam, já que não escalam com quantidade).</li>
+        <li><b>Ritmo do auto-buy corrigido</b>: antes ele comprava o mais barato disponível a cada frame (praticamente instantâneo). Agora faz exatamente 1 compra a cada 0,5 segundos (2 por segundo) — testei com precisão e confirmei 3 compras em 1,5 segundos de jogo. Se precisar de 20 cliques pra maximizar um upgrade, o auto-buy leva uns 10 segundos.</li>
+        <li><b>Sistema novo: GEMAS 💎</b> — botão novo na lateral esquerda, acima do de coletar SL, mostrando a contagem atual e o quanto está ganhando por minuto. Clicar abre um popup no meio da tela com a árvore de upgrades em formato de colmeia; clicar de novo no botão (ou no X, ou fora do popup) fecha. Gemas geram desde o início do jogo, independente de qualquer progresso — nunca resetam com Grow, Leaves ou Roots, funcionando como uma camada separada.
+          <ul>
+            <li><b>Colmeia (grátis)</b>: hexágono cinza inicial. Passar o mouse mostra "HERE THE INFO WILL BE SHOWN" (texto literal, como pedido). Clicar nela revela os dois upgrades filhos ao mesmo tempo — um na diagonal superior esquerda, outro na diagonal superior direita.</li>
+            <li><b>Upgrade 1 de Gemas</b> (diagonal esquerda, ciano): +50% de gemas por nível, 25 gemas, +20%/nível, 10 níveis. Comprá-lo pela primeira vez revela o Upgrade de Cooldown, conectado a ele.</li>
+            <li><b>Upgrade de Cooldown</b> (conectado ao Upgrade 1): -1s no cooldown de gemas por nível, 50 gemas, +50%/nível, 10 níveis.</li>
+            <li><b>Upgrade 2 de Gemas</b> (diagonal direita): +25% de gemas por nível, 150 gemas, +50%/nível, 3 níveis.</li>
+          </ul>
+          <b>Correção importante</b>: o cooldown agora é <b>real</b> — 60 segundos gerando 10 gemas de uma vez (não uma proporção tipo "1 a cada 6s"). O upgrade de Cooldown tira 1s de verdade desse intervalo de 60s por nível (chegando a 50s no nível 10, não perto de zero).<br>
+          <b>Dois bugs corrigidos</b>: o hexágono tinha o texto do tooltip e a área de clique dentro do mesmo elemento com <code>clip-path</code> (o corte que dá o formato de hexágono) — isso escondia o texto e, em alguns navegadores, atrapalhava o clique também. Separei em duas camadas: uma por fora (cuida do clique e do tooltip, sem corte nenhum) e uma por dentro só pra desenhar a forma. Testei os dois: o texto aparece e o clique funciona mesmo batendo bem no centro do hexágono.<br>
+          <b>Terceiro bug corrigido (a causa real do "clico e não funciona")</b>: eu estava reconstruindo TODOS os hexágonos do zero a cada frame (60x por segundo) enquanto o popup ficava aberto. Isso destrói e recria o elemento no meio do seu clique — o navegador começa o clique num hexágono que, um instante depois (antes do clique terminar de registrar), já não existe mais ali, e o clique se perde. Troquei por uma atualização mais leve que só troca o texto/estado dos hexágonos já existentes, sem nunca destruir e recriar — testei confirmando que o mesmo elemento continua o mesmo por vários frames seguidos, e o clique nele funciona.<br>
+          <b>Árvore reorganizada</b> (base agora 40 gemas a cada 30s): Upgrade 1 (+25% gemas, custos 50/80/150/250/400) conectado na colmeia → Upgrade 2 (-1s cooldown, custos 200/300/400/500/600) conectado no Upgrade 1 → dali saem <b>dois</b> caminhos: Upgrade 3 (+30% gemas, custos 500/1000/1500) e Upgrade 5 (-1s cooldown de novo, custos 2500/5000/7500/10000/12500), e do Upgrade 3 sai o Upgrade 4 (+10% gemas, 10 níveis de 600 até 2400, +200 por nível). Cada upgrade libera o próximo só de ser comprado 1 vez, sem precisar maximizar — testei a árvore inteira, nó por nó, e a ordem de desbloqueio bateu certinho.<br>
+          <b>Arredondamento customizado só pras gemas</b>: implementei a regra exata que você passou (,4 ou menos pra baixo, ,5 pra baixo também, ,6 ou mais pra cima) — é diferente do resto do jogo, que continua arredondando pra cima como sempre. Corrigi um bug de ponto flutuante no meio do caminho (122,6 tava dando 122 em vez de 123 por causa de imprecisão de casas decimais do JavaScript) antes de liberar.<br>
+          <b>Correção: upgrades de % são compostos (exponenciais), não somados</b>: cada nível multiplica em cima do valor JÁ aumentado pelos níveis anteriores, não soma sobre a base original. Bate exatamente com seu exemplo: 40 + 25% (nível 1 do Upgrade 1) = 50; o próximo nível aplica de novo sobre esses 50, e assim por diante — e a mesma lógica vale entre upgrades diferentes (Upgrade 1 e Upgrade 3 multiplicam um em cima do resultado do outro, não somam as porcentagens). Testei o exemplo exato que você deu e bateu certinho.<br>
+          <b>Novos percentuais</b>: Upgrade 4 agora +15%, Upgrade 1 agora +35%, Upgrade 3 agora +50%.<br>
+          <b>Novo Upgrade 6</b>: 10K gemas, compra única, dobra a produção de gemas (x2, multiplicativo com o resto). Fica na diagonal esquerda do Upgrade 4, continuando a árvore pra cima.<br>
+          <b>Arrastar adicionado</b>: clique e segure em qualquer lugar da colmeia pra arrastar e ver o restante dos upgrades — era exatamente o problema que você identificou (a árvore cresce pra cima e ficava fora da área visível sem jeito de rolar). Testei o gesto de arrastar e confirmei que move a posição certinho, sem disparar compra sem querer no meio do arrasto.<br>
+          <b>Corrigido: Upgrade 3 liberava no lugar errado</b>: antes ele aparecia só depois de comprar o Cooldown (Upgrade 2); agora libera assim que você compra o primeiro upgrade de gemas (Upgrade 1), como pedido — e o Cooldown virou um "irmão" dele, os dois saindo do Upgrade 1. Testei e confirmei a nova ordem.</li>
+          <b>Suposições que ainda valem</b> (o documento não especificava): (1) Os bônus de "+50%" e "+25%" por nível somam entre si (não multiplicam), então com os dois upgrades maximizados o multiplicador chega a 1 + 5,0 + 0,75 = x6,75. (2) As cores dos hexágonos não precisam ser iguais à foto — usei ciano pra gemas e roxo pro cooldown, só pra diferenciar visualmente.<br>
+          <b>Bug crítico corrigido</b>: o Roots (a única mecânica do jogo que reseta absolutamente tudo) estava zerando as gemas e a árvore de upgrades sem querer, contrariando o que você confirmou — gema é uma moeda extra, totalmente independente do resto do jogo. Testei especificamente esse cenário (gemas, colmeia iniciada, upgrades comprados, e SL/LE pra confirmar que o resto ainda reseta normal) e agora as gemas realmente sobrevivem a qualquer coisa, inclusive Roots. Só o botão "Reiniciar tudo" (que apaga o save inteiro) ainda zera as gemas, já que esse é o único botão pensado pra recomeçar do zero de verdade.</li>
+        <li><b>Runa N (novo pool de SL)</b>: chance 1/30 trilhões, maximiza com só 1 runa — x5 SL e x2 NU. Testei e confirmou que com 1 única runa já bate no máximo dos dois.</li>
+        <li><b>Runa M</b>: chance ajustada pra 1/10 trilhões.</li>
+        <li><b>Unlock Compost</b>: agora custa 100 trilhões de NU.</li>
+        <li><b>Dois novos upgrades pagos com LE</b>: 1 nonilhão (No) → x2 Sun Light (mais uma camada, empilha com as anteriores), 10 nonilhões → x2 Rune Luck (também empilha com o boost de Luck já existente).</li>
+        <li><b>Custos do Compost ajustados</b>: desbloquear o Gerador 2 agora custa 50.000 CO (era 2.000). O upgrade "2x CO (todos os geradores)" agora custa 5.000 CO de base (era 3.000).</li>
+        <li><b>Runas G e H</b>: dão +1 na quantidade base de runas por rolagem (vale pros dois pools, SL e LE), ativo assim que você tem pelo menos 1 dessa runa — não escala com mais cópias.</li>
+        <li><b>Runas de LE e NU</b>: ignoradas, como pedido no documento.</li>
+        <li>Os círculos de Nutrients funcionam com toque no celular (passar o dedo por cima coleta).</li>
+      </ul></div></div>`;
+  }
+  el.innerHTML=h;
+
+  if(activeTab==='nu' && nuUnlocked()) circlesDirty=true;
+}
+
+function cfgRow(group,key){
+  const cfg=C[group][key];
+  return `<div class="cfgrow"><div>${cfg.name}</div>
+    <input type="number" step="any" value="${cfg.cost}" data-cfg="${group}.${key}.cost">
+    <input type="number" step="any" value="${cfg.growth}" data-cfg="${group}.${key}.growth"></div>`;
+}
+function numRow(label,key){
+  return `<div class="cfgrow"><div>${label}</div>
+    <input type="number" step="any" value="${C[key]}" data-cfgnum="${key}"><div></div></div>`;
+}
+
+/* =================== UI: VALORES (todo frame, sem reconstruir) =================== */
+function updateValues(){
+  document.getElementById('v-sl').textContent=fmt(S.sl);
+  document.getElementById('v-le').textContent=fmt(S.le);
+  document.getElementById('v-nu').textContent=fmt(S.nu);
+  document.getElementById('v-grow').textContent=S.grow+'/8';
+  document.getElementById('v-roots').textContent=S.roots;
+  const gc=document.getElementById('gems-count');
+  if(gc) gc.textContent=fmt(S.gems);
+  const gr=document.getElementById('gems-rate');
+  if(gr) gr.textContent='+'+fmt(gemsPerTick())+'/'+gemInterval().toFixed(0)+'s';
+  if(gemsPopupOpen){
+    const gpc=document.getElementById('gems-popup-count');
+    if(gpc) gpc.textContent=fmt(S.gems);
+    const gpr=document.getElementById('gems-popup-rate');
+    if(gpr) gpr.textContent='(+'+fmt(gemsPerTick())+' gemas a cada '+gemInterval().toFixed(1)+'s)';
+    updateHiveLive();
+  }
+  const tt=document.getElementById('t-total');
+  if(tt) tt.textContent=formatDuration(S.totalPlayTime);
+  const tp=document.getElementById('t-purchase');
+  if(tp){
+    tp.textContent=formatDuration(S.timeSincePurchase);
+    tp.style.color = S.timeSincePurchase>=30 ? 'var(--danger)' : 'var(--text)';
+  }
+  const ta=document.getElementById('t-alert');
+  if(ta) ta.classList.toggle('hidden', S.slowPurchaseCount<=0);
+  const tac=document.getElementById('t-alert-count');
+  if(tac) tac.textContent=S.slowPurchaseCount;
+  document.getElementById('v-rl').textContent='x'+fmt(runeLuck());
+  document.getElementById('v-rb').textContent='x'+fmt(runeBulk());
+  document.getElementById('v-rc').textContent='x'+fmt(runeClone());
+
+  const abtn=document.getElementById('autobuy-toggle');
+  if(abtn){
+    const unlocked = autoSl()||autoLe()||autoNu();
+    abtn.classList.toggle('hidden', !unlocked);
+    if(unlocked){
+      document.getElementById('autobuy-icon').textContent = S.autoBuyDisabled ? '🚫' : '🤖';
+      document.getElementById('autobuy-label').textContent = S.autoBuyDisabled ? 'DESLIGADO' : 'AUTO-BUY';
+      abtn.style.borderColor = S.autoBuyDisabled ? 'var(--dim)' : 'var(--rune)';
+      abtn.style.color = S.autoBuyDisabled ? 'var(--dim)' : 'var(--rune)';
+    }
+  }
+  const bmtn=document.getElementById('buymax-toggle');
+  if(bmtn){
+    const unlockedBM = buyMaxActive();
+    bmtn.classList.toggle('hidden', !unlockedBM);
+    if(unlockedBM){
+      document.getElementById('buymax-icon').textContent = S.buyMaxDisabled ? '🚫' : '📦';
+      document.getElementById('buymax-label').textContent = S.buyMaxDisabled ? 'DESLIGADO' : 'BUY MAX';
+      bmtn.style.borderColor = S.buyMaxDisabled ? 'var(--dim)' : 'var(--sun)';
+      bmtn.style.color = S.buyMaxDisabled ? 'var(--dim)' : 'var(--sun)';
+    }
+  }
+  document.querySelectorAll('[data-testcur]').forEach(el=>{
+    const key=el.dataset.testcur;
+    el.textContent='x'+fmt(Math.pow(2,S.testBoost[key]));
+  });
+  const abBoostBtn=document.getElementById('autobuy-boost-toggle');
+  if(abBoostBtn){
+    const instant=autoBuyInstant();
+    abBoostBtn.style.borderColor = instant ? 'var(--sun)' : 'var(--dim)';
+    abBoostBtn.style.color = instant ? 'var(--sun)' : 'var(--dim)';
+    document.getElementById('autobuy-boost-icon').textContent = instant ? '⚡' : '🐢';
+    document.getElementById('autobuy-boost-label').textContent = instant ? (S.gemTree.abSpeed>0 ? 'SEMPRE LIGADO (Gemas)' : 'BOOST LIGADO') : 'AUTO-BUY BOOST';
+  }
+
+  // upgrades visíveis
+  document.querySelectorAll('[data-buy]').forEach(btn=>{
+    const [sec,key]=btn.dataset.buy.split(':');
+    const cfg = sec==='sl'?C.slUpg[key] : sec==='le'?C.leUpg[key] : C.nuUpg[key];
+    const lvl = sec==='sl'?S.slLvl[key] : sec==='le'?S.leLvl[key] : S.nuLvl[key];
+    const bal = sec==='sl'?S.sl : sec==='le'?S.le : S.nu;
+    const free = ((sec==='sl'&&slUpgFree()) || (sec==='le'&&leUpgFree())) && !cfg.alwaysPaid;
+    const lvlEl=document.querySelector(`[data-lvl="${sec}:${key}"]`);
+    if(lvlEl) lvlEl.textContent=lvl;
+    const effEl=document.querySelector(`[data-eff="${sec}:${key}"]`);
+    if(effEl) effEl.textContent=effText(sec,key,lvl);
+    if(lvl>=cfg.max){
+      btn.textContent='MÁXIMO'; btn.disabled=true;
+      btn.classList.add('maxed');
+    } else {
+      const c=sec==='sl'?slCost(cfg,lvl):sec==='le'?leCost(cfg,lvl):nuCost(cfg,lvl);
+      btn.textContent = fmt(c)+' '+(sec==='sl'?'SL':sec==='le'?'LE':'NU')+(free?' (não gasta)':'');
+      btn.disabled = bal<c;
+    }
+  });
+
+  if(activeTab==='sl'){
+    const r=document.getElementById('d-slrate');
+    if(r) r.textContent=`+${fmt(slPerTick())} SL a cada ${slInterval().toFixed(2)}s`;
+    const f=document.getElementById('d-slflags');
+    if(f) f.textContent=(slUpgFree()?'Upgrades grátis. ':'')+(autoSl()?(S.autoBuyDisabled?'Auto-buy desligado (botão na lateral).':'Auto-buy ativo.'):'');
+    const lb1=document.querySelector('[data-leboost="1"]');
+    if(lb1 && !S.slLvl.leboost1) lb1.disabled = S.sl<LEBOOST_COST[1];
+    const lb2=document.querySelector('[data-leboost="2"]');
+    if(lb2 && !S.slLvl.leboost2) lb2.disabled = (!S.slLvl.leboost1 || S.sl<LEBOOST_COST[2]);
+    const lb3=document.querySelector('[data-leboost="3"]');
+    if(lb3 && !S.slLvl.leboost3) lb3.disabled = (!S.slLvl.leboost2 || S.sl<LEBOOST_COST[3]);
+  }
+  if(activeTab==='le' && leUnlocked()){
+    const p=document.getElementById('d-lepreview');
+    if(p) p.textContent='+'+fmt(leOnRebirth())+' LE';
+    const btn=document.getElementById('btn-rebirth');
+    if(btn) btn.disabled=leOnRebirth()<=0;
+    const ps=document.getElementById('d-lepassive');
+    if(ps) ps.textContent = lePassivePct()>0 ? `Passivo: ganha ${lePassivePct()}% do valor de "Ao renascer agora" a cada segundo (${fmt(leOnRebirth()*lePassivePct()/100)} LE/s), sem precisar renascer.` : '';
+    LE_ONE_TIME_ORDER.forEach(key=>{
+      const b=document.querySelector(`[data-leonetime="${key}"]`);
+      if(!b || S.leLvl[key]) return; // já comprado, o botão nem existe mais (virou MÁXIMO)
+      let requiresPrev=null;
+      if(key==='slBoost2') requiresPrev='slBoost1';
+      if(key==='slBoost3') requiresPrev='slBoost2';
+      const locked = requiresPrev && !S.leLvl[requiresPrev];
+      b.disabled = locked || S.le<leOneTimeCost(key);
+    });
+  }
+  if(activeTab==='grow'){
+    C.grow.forEach((t,i)=>{
+      const slot=document.querySelector(`[data-growbtn="${i}"]`);
+      if(!slot) return;
+      const wrap=slot.closest('.tier');
+      if(S.grow>=t.id){
+        wrap.classList.add('done');
+        if(!slot.querySelector('.donetag')) slot.innerHTML='<span class="donetag">✓</span>';
+      } else if(S.grow===t.id-1){
+        let b=slot.querySelector('button');
+        if(!b){ slot.innerHTML=`<button class="buybtn" data-grow="${i}">Ascender</button>`; b=slot.querySelector('button'); }
+        const bal=t.cur==='sl'?S.sl:t.cur==='le'?S.le:t.cur==='co'?S.co:S.nu;
+        b.disabled=bal<t.cost;
+      } else {
+        if(slot.innerHTML!=='') slot.innerHTML='';
+      }
+    });
+  }
+  if(activeTab==='roots'){
+    C.roots.forEach((t,i)=>{
+      const slot=document.querySelector(`[data-rootsbtn="${i}"]`);
+      if(!slot) return;
+      const wrap=slot.closest('.tier');
+      if(S.roots>=t.id){
+        wrap.classList.add('done');
+        if(!slot.querySelector('.donetag')) slot.innerHTML='<span class="donetag">✓</span>';
+      } else if(S.roots===t.id-1){
+        let b=slot.querySelector('button');
+        if(!b){ slot.innerHTML=`<button class="buybtn root" data-roots="${i}">Enraizar</button>`; b=slot.querySelector('button'); }
+        const cur=t.cur||C.rootsCurrency;
+        const bal=cur==='sl'?S.sl:cur==='le'?S.le:cur==='co'?S.co:S.nu;
+        b.disabled=bal<t.cost;
+      } else {
+        if(slot.innerHTML!=='') slot.innerHTML='';
+      }
+    });
+  }
+  if(activeTab==='nu' && nuUnlocked()){
+    const st=document.getElementById('d-nustats');
+    if(st) st.textContent=`1 círculo a cada ${nuInterval().toFixed(2)}s · ${nuPerCircle()} NU por círculo · capacidade ${nuCapacity()}.`+(autoNu()?(S.autoBuyDisabled?' Auto-buy desligado (botão na lateral).':' Auto-buy ativo (Roots 1).'):'');
+    const tag=document.getElementById('nu-count-tag');
+    if(tag) tag.textContent=S.circles.length+'/'+nuCapacity();
+    if(circlesDirty) redrawCircles();
+  }
+  if(activeTab==='compost' && compostUnlocked()){
+      const dco=document.getElementById('d-co');
+      if(dco) dco.textContent=fmt(S.co);
+      const dcp=document.getElementById('d-coprod');
+      if(dcp) dcp.textContent=fmt(coPerTick());
+      const dci=document.getElementById('d-cointerval');
+      if(dci) dci.textContent=coInterval().toFixed(2);
+      const b1=document.getElementById('btn-gen1upg');
+      if(b1) b1.disabled = S.co<cost(C.compost.gen1Upg, Math.max(1,S.gen1UpgLvl)-1);
+      const b2u=document.getElementById('btn-gen2unlock');
+      if(b2u) b2u.disabled = S.co<C.compost.gen2.unlockCost;
+      const b2=document.getElementById('btn-gen2upg');
+      if(b2) b2.disabled = S.co<cost(C.compost.gen2Upg, S.gen2UpgLvl-1);
+      document.querySelectorAll('[data-coupg]').forEach(btn=>{
+        const key=btn.dataset.coupg;
+        const cfg=C.compost.coUpg[key];
+        const isOneTime = key==='luckBoost'||key==='runeBaseBoost'||key==='nuBoost';
+        const lvlOrBool = isOneTime ? 0 : S.coUpg[key];
+        const c = isOneTime ? cfg.cost : cost(cfg, lvlOrBool);
+        btn.disabled = S.co<c;
+      });
+      for(const tier of POWER_ORDER){
+        const maxAff=powerMaxAffordable(tier);
+        const half=Math.floor(maxAff/2);
+        const cEl=document.getElementById('power-'+tier+'-count');
+        if(cEl) cEl.textContent=fmt(S.power[tier]);
+        const bEl=document.getElementById('power-'+tier+'-boost');
+        if(bEl) bEl.textContent=powerBoostText(tier);
+        const b1=document.getElementById('power-'+tier+'-one');
+        if(b1) b1.disabled = maxAff<1;
+        const bh=document.getElementById('power-'+tier+'-half');
+        if(bh){ bh.disabled = half<1; bh.textContent='Comprar 50% ('+fmt(half)+')'; }
+        const bm=document.getElementById('power-'+tier+'-max');
+        if(bm){ bm.disabled = maxAff<1; bm.textContent='Comprar Máx ('+fmt(maxAff)+')'; }
+      }
+    }
+  if(activeTab==='runes'){
+    const bonus = runeBaseBonus();
+    const aSl=affordableRuneQty(Infinity, C.runeCost);
+    const q=document.getElementById('d-runeqty');
+    if(q) q.textContent=fmt(ceil(aSl.bulkQty*runeClone())+bonus);
+    const qc=document.getElementById('d-runecost');
+    if(qc) qc.textContent=fmt(aSl.totalCost);
+    const aLe=affordableRuneQty(Infinity, C.runeLECost);
+    const qle=document.getElementById('d-runeqty-le');
+    if(qle) qle.textContent=fmt(ceil(aLe.bulkQty*runeClone())+bonus);
+    const qcle=document.getElementById('d-runecost-le');
+    if(qcle) qcle.textContent=fmt(aLe.totalCost);
+    const aNu=affordableRuneQty(Infinity, C.runeNUCost);
+    const qnu=document.getElementById('d-runeqty-nu');
+    if(qnu) qnu.textContent=fmt(ceil(aNu.bulkQty*runeClone())+bonus);
+    const qcnu=document.getElementById('d-runecost-nu');
+    if(qcnu) qcnu.textContent=fmt(aNu.totalCost);
+    const l=document.getElementById('d-runeluck');
+    if(l) l.textContent='x'+fmt(runeLuck());
+    const rb=document.getElementById('d-runebase');
+    if(rb) rb.textContent=fmt(bonus);
+    for(const k of ['A','B','C','D','K','N']){
+      const el=document.querySelector(`[data-runecount="${k}"]`);
+      if(el) el.textContent=fmt(S.runes[k]);
+      const be=document.querySelector(`[data-runeboost="${k}"]`);
+      if(be) be.textContent=runeBoostText(k,'sl');
+      const ce=document.querySelector(`[data-runechance="${k}"]`);
+      if(ce) ce.textContent=chanceNowText(C.runes[k].chance);
+    }
+    for(const k of ['E','F','G','H','L']){
+      const el=document.querySelector(`[data-runecountle="${k}"]`);
+      if(el) el.textContent=fmt(S.runesLE[k]);
+      const be=document.querySelector(`[data-runeboostle="${k}"]`);
+      if(be) be.textContent=runeBoostText(k,'le');
+      const ce=document.querySelector(`[data-runechancele="${k}"]`);
+      if(ce) ce.textContent=chanceNowText(C.runesLE[k].chance);
+    }
+    for(const k of ['I','J','M']){
+      const el=document.querySelector(`[data-runecountnu="${k}"]`);
+      if(el) el.textContent=fmt(S.runesNU[k]);
+      const be=document.querySelector(`[data-runeboostnu="${k}"]`);
+      if(be) be.textContent=runeBoostText(k,'nu');
+      const ce=document.querySelector(`[data-runechancenu="${k}"]`);
+      if(ce) ce.textContent=chanceNowText(C.runesNU[k].chance);
+    }
+  }
+}
+
+function effText(sec,key,lvl){
+  if(sec==='sl'){
+    if(key==='add1') return `próximo nível dá: +${slAdd1Amount(lvl+1)-slAdd1Amount(lvl)}/nível · total: +${slAdd1Amount(lvl)} SL/tick`;
+    if(key==='cd')   return `cooldown atual: ${slInterval().toFixed(2)}s`;
+    if(key==='mult') return `multiplicador atual: x${leavesTieredMult(lvl)}`;
+    if(key==='x2') return lvl>=1 ? 'ganho de SL dobrado' : 'dobra o ganho de SL (compra única)';
+    if(key==='cd2') return lvl>=1 ? `cooldown atual: ${slInterval().toFixed(2)}s` : `reduz o cooldown em 0,5s (compra única) · cooldown atual: ${slInterval().toFixed(2)}s`;
+    if(key==='nuboost1') return lvl>=1 ? 'ganho de Nutrient dobrado' : 'dobra o ganho de Nutrient (compra única)';
+    if(key==='slboost2') return lvl>=1 ? 'ganho de SL dobrado (2ª camada)' : 'dobra o ganho de SL de novo (compra única)';
+    if(key==='rbboost1') return lvl>=1 ? 'Rune Bulk dobrado' : 'dobra o Rune Bulk (compra única)';
+    if(key==='slboost3') return lvl>=1 ? 'ganho de SL dobrado (3ª camada)' : 'dobra o ganho de SL de novo (compra única)';
+    if(key==='slboost4') return lvl>=1 ? 'ganho de SL dobrado (4ª camada)' : 'dobra o ganho de SL mais uma vez (compra única)';
+    if(key==='luckboost1') return lvl>=1 ? 'Rune Luck dobrado' : 'dobra o Rune Luck (compra única)';
+    if(key==='runebase1') return lvl>=1 ? '+2 na quantidade base de runas' : '+2 na quantidade base de runas por rolagem (soma antes de multiplicar por Bulk/Clone)';
+    if(key==='rbboost0') return lvl>=1 ? 'Rune Bulk dobrado (camada barata)' : 'dobra o Rune Bulk (compra única, mais barato)';
+    if(key==='nuboostB') return lvl>=1 ? 'ganho de Nutrient dobrado (camada de 10T)' : 'dobra o ganho de Nutrient de novo (compra única)';
+    if(key==='slboost5') return lvl>=1 ? 'ganho de SL dobrado (camada de 10Qa)' : 'dobra o ganho de SL de novo (compra única)';
+    if(key==='slboost6') return lvl>=1 ? 'ganho de SL dobrado (camada de 50Qa)' : 'dobra o ganho de SL de novo (compra única)';
+    if(key==='nuboostC') return lvl>=1 ? 'ganho de Nutrient dobrado (camada de 150Qa)' : 'dobra o ganho de Nutrient de novo (compra única)';
+    if(key==='nuboostD') return lvl>=1 ? 'ganho de Nutrient dobrado (camada de 1Qi)' : 'dobra o ganho de Nutrient de novo (compra única)';
+    if(key==='nuboostE') return lvl>=1 ? 'ganho de Nutrient dobrado (camada de 10Sx)' : 'dobra o ganho de Nutrient de novo (compra única)';
+  }
+  if(sec==='le'){
+    if(key==='mult')  return `multiplicador de LE atual: x${leavesTieredMult(lvl)}`;
+    if(key==='slmult')return `multiplicador de SL atual: x${leavesTieredMult(lvl)}`;
+  }
+  if(sec==='nu'){
+    if(key==='add1') return `próximo nível dá: +${slAdd1Amount(lvl+1)-slAdd1Amount(lvl)}/nível · total: ${1+slAdd1Amount(lvl)} NU base por círculo`;
+    if(key==='add10') return `próximo nível dá: +${slAdd10Amount(lvl+1)-slAdd10Amount(lvl)}/nível · total: +${slAdd10Amount(lvl)} NU base por círculo`;
+    if(key==='add100') return `próximo nível dá: +${slAdd100Amount(lvl+1)-slAdd100Amount(lvl)}/nível · total: +${slAdd100Amount(lvl)} NU base por círculo`;
+    if(key==='cd')   return `spawn atual: ${nuInterval().toFixed(2)}s`;
+    if(key==='cap')  return `capacidade atual: ${nuCapacity()}`;
+    if(key==='nuboost2') return lvl>=1 ? 'ganho de Nutrient dobrado (2ª camada)' : 'dobra o ganho de Nutrient de novo (compra única)';
+    if(key==='unlockCompost') return lvl>=1 ? 'Compost desbloqueado — Gerador 1 ativo' : 'desbloqueia o Compost e o Gerador 1 (compra única)';
+    if(key==='luckboostNU1') return lvl>=1 ? 'Rune Luck dobrado' : 'dobra o Rune Luck (compra única)';
+    if(key==='nuboost3') return lvl>=1 ? 'ganho de Nutrient dobrado (camada de 3,5T)' : 'dobra o ganho de Nutrient de novo (compra única)';
+  }
+  return '';
+}
+
+function redrawCircles(){
+  const field=document.getElementById('nu-field');
+  if(!field) return;
+  circlesDirty=false;
+  field.querySelectorAll('.nucircle').forEach(e=>e.remove());
+  for(const c of S.circles){
+    const d=document.createElement('div');
+    d.className='nucircle';
+    d.style.left=(c.x*100)+'%';
+    d.style.top=(c.y*100)+'%';
+    d.dataset.circle=c.id;
+    field.appendChild(d);
+  }
+}
+
+/* =================== LOOP =================== */
+let last=performance.now();
+function loop(now){
+  let dt=Math.min((now-last)/1000,0.25);
+  last=now;
+  dt*=S.speed;
+  if(paused) dt=0; // tudo que depende de dt (produção, auto-buy, cronômetro) congela
+
+  S.totalPlayTime += dt;
+  S.timeSincePurchase += dt;
+  if(S.timeSincePurchase>=30 && !S.purchaseAlertShown){
+    S.slowPurchaseCount++;
+    S.purchaseAlertShown=true;
+  }
+
+  // SL
+  S.accSl+=dt;
+  const si=slInterval();
+  let g=0;
+  while(S.accSl>=si && g<20000){ S.sl+=slPerTick(); if(S.sl>S.peakSl)S.peakSl=S.sl; S.accSl-=si; g++; }
+
+  // NU spawn
+  if(nuUnlocked()){
+    S.accNu+=dt;
+    const ni=nuInterval();
+    g=0;
+    while(S.accNu>=ni && g<20000){ spawnCircle(); S.accNu-=ni; g++; }
+  }
+
+  // CO (geradores de Compost)
+  if(compostUnlocked()){
+    if(S.gen1UpgLvl<1) S.gen1UpgLvl=1; // corrige saves antigos onde isso não tinha sido setado
+    S.accCo+=dt;
+    const ci=coInterval();
+    g=0;
+    while(S.accCo>=ci && g<20000){ S.co+=coPerTick(); S.accCo-=ci; g++; }
+  }
+
+  // GEMAS — geram desde o início, independente de qualquer coisa
+  S.accGems+=dt;
+  const gi=gemInterval();
+  g=0;
+  while(S.accGems>=gi && g<20000){ S.gems+=gemsPerTick(); S.accGems-=gi; g++; }
+
+  // LE passivo — % do que você ganharia SE renascesse agora (não % do que já tem acumulado)
+  const pct=lePassivePct();
+  if(pct>0){
+    const gain = leOnRebirth()*(pct/100)*dt;
+    S.le += gain;
+  }
+
+  // auto-buys — ritmo de 1 compra a cada 0,5s (2/segundo), respeitando a velocidade
+  // (ou instantâneo, como era no início, se o "AUTO-BUY BOOST" estiver ligado)
+  const ABI=0.5;
+  if(!S.autoBuyDisabled){
+    if(autoBuyInstant()){
+      if(autoSl()) autoBuyCheapest('sl');
+      if(autoLe() && leUnlocked()) autoBuyCheapest('le');
+      if(autoNu() && nuUnlocked()) autoBuyCheapest('nu');
+    } else {
+      if(autoSl()){
+        S.autoBuyAccSl+=dt;
+        while(S.autoBuyAccSl>=ABI){ autoBuyCheapest('sl'); S.autoBuyAccSl-=ABI; }
+      }
+      if(autoLe() && leUnlocked()){
+        S.autoBuyAccLe+=dt;
+        while(S.autoBuyAccLe>=ABI){ autoBuyCheapest('le'); S.autoBuyAccLe-=ABI; }
+      }
+      if(autoNu() && nuUnlocked()){
+        S.autoBuyAccNu+=dt;
+        while(S.autoBuyAccNu>=ABI){ autoBuyCheapest('nu'); S.autoBuyAccNu-=ABI; }
+      }
+    }
+  }
+
+  // runas (segurando)
+  if(holdingRune && activeTab==='runes'){
+    runeAcc+=dt;
+    while(runeAcc>=C.runeRollInterval){ rollRunes(); runeAcc-=C.runeRollInterval; }
+  }
+  if(holdingRuneLE && activeTab==='runes'){
+    runeAccLE+=dt;
+    while(runeAccLE>=C.runeRollInterval){ rollRunesLE(); runeAccLE-=C.runeRollInterval; }
+  }
+  if(holdingRuneNU && activeTab==='runes'){
+    runeAccNU+=dt;
+    while(runeAccNU>=C.runeRollInterval){ rollRunesNU(); runeAccNU-=C.runeRollInterval; }
+  }
+
+  if(dirty){ dirty=false; buildTabs(); buildContent(); }
+  updateValues();
+  requestAnimationFrame(loop);
+}
+
+/* =================== EVENTOS (delegação em containers estáveis) =================== */
+document.addEventListener('pointerdown', e=>{
+  const t=e.target;
+  if(t.closest && t.closest('#hive-wrap')){
+    hiveDragging=true; hiveDragMoved=false;
+    hiveDragStartClientX=e.clientX; hiveDragStartClientY=e.clientY;
+    hivePanStartX=hivePanX; hivePanStartY=hivePanY;
+  }
+  if(t.closest && t.closest('#rune-hold')){
+    holdingRune=true; runeAcc=0;
+    holdingRuneLE=false; holdingRuneNU=false;
+    const le=document.getElementById('rune-hold-le'); if(le) le.classList.remove('holding');
+    const nu=document.getElementById('rune-hold-nu'); if(nu) nu.classList.remove('holding');
+    document.getElementById('rune-hold').classList.add('holding');
+    e.preventDefault();
+    return;
+  }
+  if(t.closest && t.closest('#rune-hold-le')){
+    holdingRuneLE=true; runeAccLE=0;
+    holdingRune=false; holdingRuneNU=false;
+    const sl=document.getElementById('rune-hold'); if(sl) sl.classList.remove('holding');
+    const nu=document.getElementById('rune-hold-nu'); if(nu) nu.classList.remove('holding');
+    document.getElementById('rune-hold-le').classList.add('holding');
+    e.preventDefault();
+    return;
+  }
+  if(t.closest && t.closest('#rune-hold-nu')){
+    holdingRuneNU=true; runeAccNU=0;
+    holdingRune=false; holdingRuneLE=false;
+    const sl=document.getElementById('rune-hold'); if(sl) sl.classList.remove('holding');
+    const le=document.getElementById('rune-hold-le'); if(le) le.classList.remove('holding');
+    document.getElementById('rune-hold-nu').classList.add('holding');
+    e.preventDefault();
+    return;
+  }
+  const circ=t.closest ? t.closest('.nucircle') : null;
+  if(circ){ collectCircle(circ.dataset.circle); return; }
+});
+document.addEventListener('pointerup', ()=>{
+  hiveDragging=false;
+  if(holdingRune){
+    holdingRune=false;
+    const b=document.getElementById('rune-hold');
+    if(b) b.classList.remove('holding');
+  }
+  if(holdingRuneLE){
+    holdingRuneLE=false;
+    const b=document.getElementById('rune-hold-le');
+    if(b) b.classList.remove('holding');
+  }
+  if(holdingRuneNU){
+    holdingRuneNU=false;
+    const b=document.getElementById('rune-hold-nu');
+    if(b) b.classList.remove('holding');
+  }
+});
+document.addEventListener('pointercancel', ()=>{ hiveDragging=false; holdingRune=false; holdingRuneLE=false; holdingRuneNU=false; });
+// coleta por hover / arrastar o dedo — raio de coleta = diâmetro do círculo (34px), não só o hit exato
+document.addEventListener('pointermove', e=>{
+  if(hiveDragging){
+    const dx=e.clientX-hiveDragStartClientX, dy=e.clientY-hiveDragStartClientY;
+    if(Math.abs(dx)>4 || Math.abs(dy)>4) hiveDragMoved=true;
+    hivePanX=hivePanStartX+dx; hivePanY=hivePanStartY+dy;
+    repositionHiveOnly();
+  }
+  if(activeTab!=='nu') return;
+  const field=document.getElementById('nu-field');
+  if(!field) return;
+  const radius=34; // diâmetro do .nucircle (34px), usado como raio de coleta ao redor do mouse/dedo
+  document.querySelectorAll('.nucircle').forEach(el=>{
+    const r=el.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    const dx=e.clientX-cx, dy=e.clientY-cy;
+    if(Math.sqrt(dx*dx+dy*dy)<=radius) collectCircle(el.dataset.circle);
+  });
+});
+document.addEventListener('pointerover', e=>{
+  if(activeTab!=='nu') return;
+  const t=e.target;
+  if(t.classList && t.classList.contains('nucircle')) collectCircle(t.dataset.circle);
+});
+
+document.addEventListener('click', e=>{
+  const t=e.target;
+  if(t.closest && t.closest('#sl-click')){
+    const gain=slPerTick();
+    S.sl+=gain;
+    if(S.sl>S.peakSl) S.peakSl=S.sl;
+    return;
+  }
+  if(t.closest && t.closest('#autobuy-toggle')){
+    S.autoBuyDisabled=!S.autoBuyDisabled;
+    return;
+  }
+  if(t.closest && t.closest('#buymax-toggle')){
+    S.buyMaxDisabled=!S.buyMaxDisabled;
+    return;
+  }
+  if(t.closest && t.closest('#gems-toggle')){
+    gemsPopupOpen=!gemsPopupOpen;
+    document.getElementById('gems-overlay').classList.toggle('open',gemsPopupOpen);
+    if(gemsPopupOpen) renderHive();
+    return;
+  }
+  if(t.closest && t.closest('#gems-close')){
+    gemsPopupOpen=false;
+    document.getElementById('gems-overlay').classList.remove('open');
+    return;
+  }
+  if(t.id==='gems-overlay'){ // clicou no fundo, fora do popup
+    gemsPopupOpen=false;
+    document.getElementById('gems-overlay').classList.remove('open');
+    return;
+  }
+  const hexEl=t.closest && t.closest('[data-gemnode]');
+  if(hexEl){
+    if(hiveDragMoved){ hiveDragMoved=false; return; } // era um arrasto, não um clique
+    const key=hexEl.dataset.gemnode;
+    if(key==='hive') clickGemHive(); else buyGemNode(key);
+    return;
+  }
+  const shopBtn=t.closest && t.closest('[data-testboost]');
+  if(shopBtn){
+    S.testBoost[shopBtn.dataset.testboost]++;
+    return;
+  }
+  if(t.closest && t.closest('#autobuy-boost-toggle')){
+    S.autoBuyBoost=!S.autoBuyBoost;
+    return;
+  }
+  const tab=t.closest && t.closest('.tab');
+  if(tab){ activeTab=tab.dataset.tab; holdingRune=false; holdingRuneLE=false; holdingRuneNU=false; markDirty(); return; }
+  const buy=t.closest && t.closest('[data-buy]');
+  if(buy && !buy.disabled){
+    const [sec,key]=buy.dataset.buy.split(':');
+    if(sec==='sl')buySl(key); else if(sec==='le')buyLe(key); else buyNu(key);
+    return;
+  }
+  const gb=t.closest && t.closest('[data-grow]');
+  if(gb && !gb.disabled){ ascendGrow(parseInt(gb.dataset.grow)); return; }
+  const gd=t.closest && t.closest('[data-growdebug]');
+  if(gd){ debugActivateGrow(parseInt(gd.dataset.growdebug)); return; }
+  const rb=t.closest && t.closest('[data-roots]');
+  if(rb && !rb.disabled){ ascendRoots(parseInt(rb.dataset.roots)); return; }
+  const rd=t.closest && t.closest('[data-rootsdebug]');
+  if(rd){ debugActivateRoots(parseInt(rd.dataset.rootsdebug)); return; }
+  const mr=t.closest && t.closest('[data-maxrune]');
+  if(mr){
+    const [pool,key]=mr.dataset.maxrune.split(':');
+    maximizeRune(pool,key);
+    return;
+  }
+  if(t.id==='btn-rebirth' && !t.disabled){ rebirth(); return; }
+  if(t.id==='btn-gen1upg' && !t.disabled){ buyGen1Upg(); return; }
+  if(t.id==='btn-gen2unlock' && !t.disabled){ buyGen2Unlock(); return; }
+  if(t.id==='btn-gen2upg' && !t.disabled){ buyGen2Upg(); return; }
+  const cu=t.closest && t.closest('[data-coupg]');
+  if(cu && !cu.disabled){ buyCoUpg(cu.dataset.coupg); return; }
+  const pw=t.closest && t.closest('[data-power]');
+  if(pw && !pw.disabled){
+    const [tier,mode]=pw.dataset.power.split(':');
+    buyPower(tier,mode);
+    return;
+  }
+  const lbo=t.closest && t.closest('[data-leboost]');
+  if(lbo && !lbo.disabled){ buyLeBoost(parseInt(lbo.dataset.leboost)); return; }
+  const lot=t.closest && t.closest('[data-leonetime]');
+  if(lot && !lot.disabled){ buyLeOneTime(lot.dataset.leonetime); return; }
+  const add=t.closest && t.closest('[data-add]');
+  if(add){
+    S[add.dataset.add]+=parseFloat(add.dataset.amt);
+    if(add.dataset.add==='sl' && S.sl>S.peakSl) S.peakSl=S.sl;
+    return;
+  }
+  const spd=t.closest && t.closest('.spd');
+  if(spd){
+    document.querySelectorAll('.spd').forEach(x=>x.classList.remove('active'));
+    spd.classList.add('active');
+    S.speed=parseFloat(spd.dataset.speed);
+    return;
+  }
+});
+
+// balance inputs
+document.addEventListener('change', e=>{
+  const t=e.target;
+  if(t.dataset && t.dataset.cfg){
+    const [g,k,f]=t.dataset.cfg.split('.');
+    const v=parseFloat(t.value);
+    if(isFinite(v)) C[g][k][f]=v;
+  }
+  if(t.dataset && t.dataset.cfgnum){
+    const v=parseFloat(t.value);
+    if(isFinite(v)) C[t.dataset.cfgnum]=v;
+  }
+  if(t.dataset && t.dataset.rootcost!==undefined){
+    const v=parseFloat(t.value);
+    if(isFinite(v)) C.roots[parseInt(t.dataset.rootcost)].cost=v;
+  }
+});
+
+/* =================== SAVE / LOAD (nunca bloqueia a tela) =================== */
+function timeout(p,ms){ return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('t')),ms))]); }
+async function save(){
+  try{
+    if(typeof window.storage==='undefined') throw 0;
+    await timeout(window.storage.set('sun-garden-v2', JSON.stringify(S), false), 4000);
+    document.getElementById('save-msg').textContent='✓ salvo';
+  }catch(e){ document.getElementById('save-msg').textContent='indisponível aqui'; }
+  setTimeout(()=>{document.getElementById('save-msg').textContent='';},3000);
+}
+async function load(){
+  try{
+    if(typeof window.storage==='undefined') throw 0;
+    const r=await timeout(window.storage.get('sun-garden-v2', false), 4000);
+    if(r && r.value){
+      const l=JSON.parse(r.value);
+      S=Object.assign(freshState(), l);
+      S.circles=S.circles||[];
+      markDirty();
+      document.getElementById('save-msg').textContent='✓ carregado';
+      setTimeout(()=>{document.getElementById('save-msg').textContent='';},3000);
+    }
+  }catch(e){}
+}
+document.getElementById('b-save').addEventListener('click',save);
+document.getElementById('b-load').addEventListener('click',load);
+document.getElementById('b-pause').addEventListener('click',function(){
+  paused=!paused;
+  const icon=document.getElementById('b-pause-icon'), label=document.getElementById('b-pause-label');
+  if(icon) icon.textContent = paused ? '▶' : '⏸';
+  if(label) label.textContent = paused ? 'Continuar' : 'Pausar';
+  this.style.borderColor = paused ? 'var(--sun)' : '';
+  this.style.color = paused ? 'var(--sun)' : '';
+});
+document.getElementById('b-reset').addEventListener('click',function(){
+  if(!resetArmed){
+    resetArmed=true;
+    this.textContent='Confirmar?';
+    setTimeout(()=>{resetArmed=false;this.textContent='Reiniciar';},2500);
+  } else {
+    S=freshState(); resetArmed=false; this.textContent='Reiniciar'; markDirty();
+  }
+});
+
+/* =================== INIT: desenha imediatamente, save carrega em paralelo =================== */
+buildTabs(); buildContent();
+requestAnimationFrame(loop);
+load();
+</script>
+</body>
+</html>
